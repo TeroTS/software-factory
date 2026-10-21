@@ -3,12 +3,11 @@ import { describe, expect, it } from "vitest";
 import { validateEnvironment } from "./env";
 
 const valid = {
-  FACTORY_ADMIN_TOKEN: "test-only-token",
   FACTORY_CREDENTIAL_ENCRYPTION_KEY: randomBytes(32).toString("base64"),
 };
 
 describe("Factory environment", () => {
-  it("accepts valid configuration", () => {
+  it("accepts valid configuration without an admin token", () => {
     expect(() => validateEnvironment(valid)).not.toThrow();
   });
 
@@ -40,7 +39,6 @@ describe("Factory environment", () => {
         check();
       } catch (error) {
         expect(String(error)).not.toContain(key);
-        expect(String(error)).not.toContain(valid.FACTORY_ADMIN_TOKEN);
       }
     });
   }

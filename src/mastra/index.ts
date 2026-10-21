@@ -14,7 +14,7 @@ import { validateEnvironment } from "./env";
 validateEnvironment(process.env);
 
 export const factory = new MastraFactory({
-  // US-02 adds Simple Auth; this intermediate slice must remain local-only.
+  // Single-user local access only; never expose this server through a proxy or tunnel.
   auth: null,
   secretEncryption: createFactorySecretEncryption({
     primary: {

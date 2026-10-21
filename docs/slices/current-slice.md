@@ -4,19 +4,20 @@ Status: done
 
 ## Slice Goal
 
-- The local developer/admin can start the Factory Server with validated local configuration.
+- The local developer/admin opens the local Factory Server without signing in or configuring an admin token.
 
 ## Slice Boundary
 
-- After installing dependencies and configuring `.env`, the local developer/admin runs `npm run dev`, sees the local URL, and receives an HTTP response; Factory Server transitions from stopped to running.
+- After starting the Factory Server, the local developer/admin opens its loopback URL without credentials and receives Factory content and API responses; the request completes without an authentication step.
+- User-approved scope change: replace US-02 admin-token sign-in with single-user, loopback-only access without authentication. No login screen or adapter is needed.
 
 ## Stories In Scope
 
-- `US-01 Start the local Factory Server`
+- `US-02 Open Factory locally without signing in`
 
 ## Stories Completed In This Slice
 
-- `US-01 Start the local Factory Server`
+- `US-02 Open Factory locally without signing in`
 
 ## Stories Remaining In This Slice
 
@@ -24,56 +25,49 @@ Status: done
 
 ## Contract Inputs
 
-- None.
+- None. No authored HTTP endpoints or upstream API schemas change.
 
 ## Decision Inputs
 
-- None.
+- `DECISIONS.md`: single-user local access without authentication supersedes the original Simple Auth decision.
 
 ## Shared State Required Now
 
-- Validated `FACTORY_ADMIN_TOKEN` and `FACTORY_CREDENTIAL_ENCRYPTION_KEY` environment variables.
-- Upstream scaffold configuration required to start the Factory Server locally.
+- Required credential encryption key; no admin token, identity, or session state.
+- Explicit `auth: null` and server host `127.0.0.1`.
 
 ## Operations / Endpoints / Surfaces In This Slice
 
-- Root npm project generated with `create-factory --no-platform`.
-- Environment validation, `.env.example`, `.gitignore`, test and coverage tooling, and startup documentation.
-- Existing upstream Factory HTTP surface; no new HTTP endpoints or contracts.
+- Environment validation, `.env.example`, and existing Factory composition.
+- Startup integration test, README, specification, decisions, vocabulary, and repository guidance.
 
 ## Tests Required
 
-- Unit tests reject missing or blank required variables without exposing secrets.
-- Typecheck and Vitest coverage pass with at least 80% coverage of hand-written runtime modules.
-- Explicit end-to-end test starts the real Factory Server using valid environment configuration and observes an HTTP response and the local URL.
-- Startup with either required variable absent fails clearly without logging secrets.
+- Unit tests accept configuration without an admin token while rejecting missing, blank, and malformed credential encryption keys without logging secrets.
+- Real end-to-end startup test omits the admin token, observes Factory HTML and an API response without credentials, confirms auth-disabled status, and verifies the loopback listener.
+- Formatting, typecheck, coverage (no decrease), and build pass.
 
 ## Not Now
 
-- US-02 auth configuration and sign-in verification.
-- US-03 persistence configuration and restart verification.
-- US-04 shared LocalSandbox callback and check script.
-- US-05 Copilot connection; US-06 full Factory session.
-- Deployment pipeline. A minimal CI coverage check is included only because the repository-wide testing instructions require coverage execution in CI, despite SPEC.md's CI non-goal.
+- Login UI, token adapter, RBAC, multiple users, proxy/tunnel/LAN exposure.
+- US-03 project-local persistence, US-04 sandbox verification, US-05 Copilot connection, and US-06 full Factory session.
 
 ## Done When
 
-- `npm install`, typecheck, coverage, and the real startup test pass.
-- Both required variables fail fast when absent; secrets are never logged.
-- README documents prerequisites, installation, environment setup, and startup.
-- `.git`, `instructions.txt`, and existing project documentation are preserved.
+- Factory starts and responds without an admin token, authentication stays disabled, and the listener remains bound to `127.0.0.1`.
+- The encryption key remains required; documentation consistently describes local-only unauthenticated access and its risks.
+- Automated checks pass.
 
 ## Completion Summary
 
-- The local developer/admin can install dependencies, configure `.env`, and start the real Factory Server; its logged loopback URL and HTML response are verified automatically.
-- Missing or blank required values and malformed encryption keys fail before the server starts, without exposing secrets.
-- All 13 tests pass on Node 25.4.0 and Node 22.19.0; environment validation has 100% statement, branch, function, and line coverage. Typecheck and Prettier checks pass.
-- Authentication is deliberately not enabled until US-02; the server binds to `127.0.0.1`. Do not proxy or tunnel this intermediate server.
-- The latest generator rejects a non-empty root, so its temporary-directory scaffold was copied while preserving `.git`, `instructions.txt`, and existing documentation. Unused cloud/integration configuration was omitted.
-- Upstream uses `LocalFactorySandbox` rather than the older callback-oriented template. US-04 must reconcile that installed API with its stated boundary before implementation.
-- `npm install` succeeds with an upstream Stagehand/OpenAI Zod peer-version warning. The hosted GitHub Actions job has not been executed here.
+- Factory starts without an admin token; the local developer/admin receives Factory HTML and API responses without credentials. Authentication remains explicitly disabled and the server remains bound to `127.0.0.1`.
+- The credential encryption key remains required and validated without logging secrets. Existing `.env` files do not need a new key; unused admin-token/name entries may be removed.
+- The real startup test verifies auth-disabled status and rejects connections through available non-loopback IPv4 interfaces, using a temporary database and `.env` rather than developer state.
+- Specification, decisions, vocabulary, setup instructions, and agent guidance now consistently describe the user-approved single-user local-access scope and its exposure risks. No login adapter, authored endpoint, generated contract, or dependency was added.
+- `./scripts/verify` passes on Node 22.22.3: formatting, typecheck, all nine tests, coverage, and build. Runtime-module coverage remains 100% for statements, branches, functions, and lines. All nine tests also pass on Node 25.4.0.
+- No browser-driven UI interaction or hosted CI run was performed; the end-to-end check uses the real server's HTML and HTTP API.
 
 ## Next Slice Recommendation
 
-- `US-02 Sign in with the admin token` is the next explicit story; verify SimpleAuth compatibility with Factory's authenticated UI as well as protected API calls.
-- Keep US-03 project-local SQLite persistence and US-04 shared LocalSandbox configuration in view; neither is part of this completed slice.
+- `US-03 Factory data persists across restarts` is the next explicit story.
+- Keep US-04 shared LocalSandbox configuration and US-05 Copilot credential persistence in view; neither is part of this slice.

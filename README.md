@@ -4,9 +4,9 @@ Local, self-hosted Mastra Factory project, scaffolded with `create-factory@0.3.0
 
 ## Current delivery
 
-US-01 starts the Factory Server. Admin-token authentication, project-local persistence configuration, the sandbox check script, and GitHub Copilot connection verification remain separate stories in `SPEC.md`.
+US-01 starts the Factory Server; US-02 provides single-user local access without signing in. Project-local persistence configuration, the sandbox check script, and GitHub Copilot connection verification remain separate stories in `SPEC.md`.
 
-**Authentication is not enabled yet.** The server binds to `127.0.0.1`. Do not expose it through a proxy or tunnel. The required admin token is validated but will not protect requests until US-02. Factory's authenticated UI workflows are not usable in this intermediate slice.
+**Authentication is intentionally disabled.** The server binds strictly to `127.0.0.1`. No admin token or login is needed. Never expose it through a proxy, tunnel, or LAN address. Local processes/users able to reach it can access its capabilities, including command execution; loopback is not complete isolation.
 
 ## Prerequisites
 
@@ -29,28 +29,26 @@ cp .env.example .env
 
 ## Environment configuration
 
-Edit `.env` and fill both required variables:
+Edit `.env` and fill the one required variable:
 
-| Variable                            | Value                                                                          |
-| ----------------------------------- | ------------------------------------------------------------------------------ |
-| `FACTORY_ADMIN_TOKEN`               | A private, random admin token; required now, used for authentication in US-02. |
-| `FACTORY_CREDENTIAL_ENCRYPTION_KEY` | A base64-encoded 32-byte key.                                                  |
+| Variable                            | Value                         |
+| ----------------------------------- | ----------------------------- |
+| `FACTORY_CREDENTIAL_ENCRYPTION_KEY` | A base64-encoded 32-byte key. |
 
-Generate each secret separately:
+Generate the credential encryption key:
 
 ```bash
-openssl rand -hex 32
 openssl rand -base64 32
 ```
 
-Use the first output for the admin token and the second for the credential encryption key. Never commit or share `.env`. Keep the encryption key stable: losing it makes encrypted credentials unreadable.
+Never commit or share `.env`. Keep the encryption key stable: losing it makes encrypted credentials unreadable. `FACTORY_ADMIN_TOKEN` and `FACTORY_ADMIN_NAME` are not used; remove them from an existing `.env` if present.
 
 Optional defaults are commented in `.env.example`:
 
 - `PORT=4111`
 - `MASTRACODE_PUBLIC_URL=http://localhost:4111`
 
-If changing the port, set the public URL to match. Restart after changing `.env`. Missing or blank required variables, or a malformed encryption key, stop startup with a variable-specific error that does not print secrets.
+If changing the port, set the public URL to match. Restart after changing `.env`. A missing, blank, or malformed encryption key stops startup with a variable-specific error that does not print secrets.
 
 ## Start
 
@@ -62,6 +60,12 @@ The Factory Server logs its local URL. Open `http://localhost:4111`, or verify t
 
 ```bash
 curl --fail http://localhost:4111
+```
+
+Open Factory directly; no sign-in is required. Verify an API response without credentials:
+
+```bash
+curl --fail http://localhost:4111/api/agents
 ```
 
 Stop with Ctrl-C. No PostgreSQL, Redis, Docker, or Mastra platform provisioning is required.
@@ -101,7 +105,7 @@ For the startup test alone:
 npm test -- tests/startup.test.ts
 ```
 
-The startup test runs the real `npm run dev` with a temporary `.env`, SQLite file, and dynamically selected port, checks the HTML response and logged URL, and stops the process group. It also checks fail-fast startup with either required variable missing. It does not use your `.env` or SQLite database.
+The startup test runs the real `npm run dev` without an admin token, using a temporary `.env`, SQLite file, and dynamically selected port. It checks HTML and API responses without credentials, auth-disabled status, the logged loopback URL, and refusal of connections to non-loopback IPv4 addresses when available, then stops the process group. It also checks fail-fast startup without the credential encryption key. It does not use your `.env` or SQLite database.
 
 Coverage reports: `coverage/index.html` and `coverage/lcov.info`. Statements, branches, functions, and lines must each reach 80%. The upstream framework-composition entry is excluded; hand-written environment validation is included. New behavior modules must remain covered.
 

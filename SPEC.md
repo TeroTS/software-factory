@@ -3,11 +3,12 @@
 Source: `DECISIONS.md`
 
 ## Summary
-- A local, self-hosted Mastra Factory project in this repo root (TypeScript, npm). It uses Simple Auth with one env-configured admin token, local SQLite storage via `LibSQLFactoryStorage` under `data/`, `LocalSandbox` for agent execution, and GitHub Copilot as the model provider. No cloud services.
+- A local, self-hosted Mastra Factory project in this repo root (TypeScript, npm), used by one local developer/admin without authentication and bound strictly to `127.0.0.1`. It uses local SQLite storage via `LibSQLFactoryStorage` under `data/`, `LocalSandbox` for agent execution, and GitHub Copilot as the model provider. No cloud services.
+- User-approved scope revision: single-user loopback-only access replaces the original Simple Auth requirement.
 
 ## Goals
 - `npm install` succeeds, and `npm run dev` starts Factory at `http://localhost:4111` without configuration errors.
-- Simple Auth is enforced on protected Factory endpoints using `FACTORY_ADMIN_TOKEN`.
+- Factory opens without signing in or configuring an admin token; authentication is explicitly disabled and the server binds only to `127.0.0.1`.
 - Factory state is stored in `data/factory.db` and persists across restarts.
 - `LocalSandbox` is selected, uses a session directory under the sandbox root, and can execute commands.
 - GitHub Copilot can be connected in the UI with credentials stored encrypted.
@@ -15,7 +16,7 @@ Source: `DECISIONS.md`
 - `README.md` documents prerequisites, install, env configuration, start commands, and verification steps.
 
 ## Non-Goals
-- Mastra platform auth, PostgreSQL, Turso, PlatformSandbox, E2B, Docker, Redis.
+- Authentication/login UI, Mastra platform auth, PostgreSQL, Turso, PlatformSandbox, E2B, Docker, Redis.
 - GitHub App setup, Linear/Slack/Jira/GitLab/incident.io integrations.
 - AWS Bedrock, GitHub Models (`GITHUB_TOKEN`), and other model providers.
 - A full end-to-end Factory session (issue → plan → PR).
@@ -35,11 +36,11 @@ Visible outcome: The Factory Server logs its local URL, and `http://localhost:41
 
 Authoritative state transition: Factory Server goes from not running to running with the validated local configuration.
 
-Slice boundary: Scaffold with `npm create factory@latest` `--no-platform` into the repo root, keeping `.git` and `instructions.txt`. Add env validation for `FACTORY_ADMIN_TOKEN` and `FACTORY_CREDENTIAL_ENCRYPTION_KEY`, `.env.example`, `.gitignore`, the Vitest + coverage setup, and the README sections for prerequisites, install, env configuration, and start. Unit tests cover env validation.
+Slice boundary: Scaffold with `npm create factory@latest` `--no-platform` into the repo root, keeping `.git` and `instructions.txt`. Add env validation for `FACTORY_CREDENTIAL_ENCRYPTION_KEY`, `.env.example`, `.gitignore`, the Vitest + coverage setup, and the README sections for prerequisites, install, env configuration, and start. Unit tests cover env validation.
 
 Acceptance criteria:
 - `npm install`, typecheck, and `npm run dev` succeed with a valid `.env`, and `http://localhost:4111` responds.
-- Startup fails fast with a clear error naming the missing variable when `FACTORY_ADMIN_TOKEN` or `FACTORY_CREDENTIAL_ENCRYPTION_KEY` is unset. Secret values are never logged.
+- Startup fails fast with a clear error naming the missing variable when `FACTORY_CREDENTIAL_ENCRYPTION_KEY` is unset. Secret values are never logged.
 - `.env.example` lists every required variable with a safe placeholder. It shows `PORT` and `MASTRACODE_PUBLIC_URL` as commented defaults, and the README gives `openssl rand -base64 32` for generating the key.
 - `.gitignore` covers `.env`, `data/`, build outputs, `node_modules/`, and coverage output.
 - No secrets are hardcoded in source.
@@ -47,24 +48,24 @@ Acceptance criteria:
 Deferred follow-ups:
 - US-02, US-03, US-04, US-05.
 
-### US-02: Sign in with the admin token
+### US-02: Open Factory locally without signing in
 Primary actor: Local developer/admin
 
-Trigger: The Factory Server is running and the local developer/admin opens Factory or calls a protected endpoint.
+Trigger: The Factory Server is running and the local developer/admin opens its loopback URL.
 
-Happy-path action: Authenticate with `FACTORY_ADMIN_TOKEN`, either on the Factory/Studio login screen or as `Authorization: Bearer <token>`.
+Happy-path action: Open Factory without supplying credentials.
 
-Visible outcome: Factory loads for the local developer/admin, and protected API calls succeed.
+Visible outcome: Factory content and API responses load without a login step.
 
-Authoritative state transition: The request is unauthenticated, then authenticated as the local developer/admin via the admin token.
+Authoritative state transition: The local request completes without establishing an authenticated identity or session.
 
-Slice boundary: `SimpleAuth` from `@mastra/core/server` is passed to the `auth` option of `MastraFactory`. It has one token-to-user mapping, with `FACTORY_ADMIN_NAME` as an optional display name. Default headers and public/protected paths are unchanged. The README adds an auth verification section with curl commands. Unit tests cover building the token map.
+Slice boundary: Keep `auth: null` in `MastraFactory` and bind the server explicitly to `127.0.0.1`. Remove the unused admin-token requirement from environment validation and setup documentation. No custom login UI, token adapter, or new HTTP API is added.
 
 Acceptance criteria:
-- A protected endpoint returns an auth error with no token or an invalid token, and succeeds with a valid token. Verified with curl.
-- The login screen accepts the admin token and rejects an invalid one.
-- The token is read only from the env and is never logged.
-- `GET /api/auth/capabilities` stays public, as the default.
+- Startup succeeds without `FACTORY_ADMIN_TOKEN`; `FACTORY_CREDENTIAL_ENCRYPTION_KEY` remains required and is never logged.
+- Factory HTML and an existing Factory API endpoint respond without credentials; the upstream auth status reports authentication disabled.
+- The server listens only on `127.0.0.1`, not LAN or wildcard addresses.
+- The README warns against proxies, tunnels, and LAN exposure and explains that local processes/users able to reach the server can access its capabilities, including command execution.
 
 Deferred follow-ups:
 - None.
@@ -108,7 +109,7 @@ Acceptance criteria:
 - The sandbox check script exits 0 and prints the `git --version` output.
 - The sandbox root is created if missing and is writable. The script fails with a clear error if it isn't.
 - Factory uses the explicit `LocalSandbox` callback and selects no remote provider.
-- Hand-written modules (auth, storage, sandbox, env validation) have at least 80% test coverage.
+- Hand-written modules (storage, sandbox, env validation) have at least 80% test coverage.
 
 Deferred follow-ups:
 - US-06.
@@ -116,7 +117,7 @@ Deferred follow-ups:
 ### US-05: Connect GitHub Copilot as the model provider
 Primary actor: Local developer/admin
 
-Trigger: The local developer/admin is signed in to Factory and has an active GitHub Copilot subscription.
+Trigger: The local developer/admin has opened the local Factory Server and has an active GitHub Copilot subscription.
 
 Happy-path action: In **Settings → Models**, choose GitHub Copilot and complete the browser/device sign-in.
 

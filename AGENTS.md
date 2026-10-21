@@ -2,7 +2,7 @@
 
 ## Project
 
-A single TypeScript/npm Factory project for a local, self-hosted Mastra Factory Server. US-01 is complete; authentication, project-local persistence, and sandbox verification remain later stories.
+A single TypeScript/npm Factory project for a local, self-hosted Mastra Factory Server. US-01 and US-02 are complete: startup and single-user loopback-only access without authentication. Project-local persistence and sandbox verification remain later stories.
 
 ## Repo Layout
 
@@ -65,8 +65,9 @@ npm test -- tests/startup.test.ts
 
 ## Gotchas and Manual Steps
 
-- Only starting the Factory Server needs `.env`: copy `.env.example` without overwriting an existing `.env`, then fill `FACTORY_ADMIN_TOKEN` and `FACTORY_CREDENTIAL_ENCRYPTION_KEY`. Generate the encryption key with `openssl rand -base64 32`; never log or commit secrets.
-- Auth is currently disabled. The server binds to `127.0.0.1`, normally port 4111; never expose it through a proxy or tunnel. Do not implement US-02 implicitly during maintenance.
+- Only starting the Factory Server needs `.env`: copy `.env.example` without overwriting an existing `.env`, then fill `FACTORY_CREDENTIAL_ENCRYPTION_KEY`. No admin token is required or used. Generate the encryption key with `openssl rand -base64 32`; never log or commit secrets.
+- Authentication is intentionally disabled (`auth: null`) for one local developer/admin. Keep the server bound strictly to `127.0.0.1`, normally port 4111; never expose it through a proxy, tunnel, or LAN address. Local processes/users that can reach it can access its capabilities, including command execution. Do not add authentication implicitly during maintenance.
+- Factory accepting an auth provider does not mean its bundled login UI supports that provider. In the installed `@mastra/factory@0.24.0`, the UI lacks SimpleAuth token sign-in. Check provider, login-route, and UI compatibility before changing authentication; recheck after upgrades.
 - Storage still uses the upstream local path. `MASTRA_DB_PATH` can point to a dedicated absolute SQLite filename in an existing writable directory until US-03 lands.
 - Startup integration tests require macOS/Linux process groups. They create a temporary `.env` and SQLite file and use a dynamic port; no browser or provider sign-in is required.
 - Build copies the bundled Factory UI and installs output dependencies, so verification may require network access. Initial setup/build/tests can take longer than warm runs. Do not infer failure from elapsed time or automatically retry with a longer timeout; if output stalls, report status and ask.

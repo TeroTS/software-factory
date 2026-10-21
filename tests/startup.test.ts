@@ -9,13 +9,12 @@ import {
   writeFileSync,
 } from "node:fs";
 import { createServer } from "node:net";
-import { tmpdir } from "node:os";
+import { networkInterfaces, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, expect, it } from "vitest";
 
 let directory: string;
 let stop: (() => Promise<void>) | undefined;
-const token = randomBytes(24).toString("hex");
 const key = randomBytes(32).toString("base64");
 
 beforeEach(() => {
@@ -32,33 +31,23 @@ afterEach(async () => {
   rmSync(directory, { recursive: true, force: true });
 });
 
-for (const missing of [
-  "FACTORY_ADMIN_TOKEN",
-  "FACTORY_CREDENTIAL_ENCRYPTION_KEY",
-]) {
-  it(`npm run dev fails fast without ${missing}`, () => {
-    const env = {
-      ...process.env,
-      FACTORY_ADMIN_TOKEN: token,
-      FACTORY_CREDENTIAL_ENCRYPTION_KEY: key,
-    };
-    delete env[missing as keyof typeof env];
-    const result = spawnSync("npm", ["run", "dev"], {
-      cwd: directory,
-      env,
-      encoding: "utf8",
-      timeout: 15_000,
-    });
-    expect(result.error).toBeUndefined();
-    expect(result.status).not.toBe(0);
-    const output = result.stdout + result.stderr;
-    expect(output).toContain(`${missing} is required`);
-    expect(output).not.toContain(token);
-    expect(output).not.toContain(key);
+it("npm run dev fails fast without the credential encryption key", () => {
+  const env = { ...process.env };
+  delete env.FACTORY_CREDENTIAL_ENCRYPTION_KEY;
+  const result = spawnSync("npm", ["run", "dev"], {
+    cwd: directory,
+    env,
+    encoding: "utf8",
+    timeout: 15_000,
   });
-}
+  expect(result.error).toBeUndefined();
+  expect(result.status).not.toBe(0);
+  const output = result.stdout + result.stderr;
+  expect(output).toContain("FACTORY_CREDENTIAL_ENCRYPTION_KEY is required");
+  expect(output).not.toContain(key);
+});
 
-it("local developer/admin starts the real Factory Server from .env and observes its local URL", async () => {
+it("local developer/admin opens the loopback-only Factory Server without an admin token or sign-in", async () => {
   const reservation = createServer();
   reservation.listen(0, "127.0.0.1");
   await once(reservation, "listening");
@@ -70,7 +59,7 @@ it("local developer/admin starts the real Factory Server from .env and observes 
   );
   writeFileSync(
     join(directory, ".env"),
-    `FACTORY_ADMIN_TOKEN=${token}\nFACTORY_CREDENTIAL_ENCRYPTION_KEY=${key}\nPORT=${port}\n`,
+    `FACTORY_CREDENTIAL_ENCRYPTION_KEY=${key}\nPORT=${port}\n`,
   );
   const env: NodeJS.ProcessEnv = {
     ...process.env,
@@ -125,7 +114,24 @@ it("local developer/admin starts the real Factory Server from .env and observes 
     )
     .toBe(true);
   expect(output).toContain(`http://127.0.0.1:${port}`);
-  expect(output).not.toContain(token);
+  const agents = await fetch(`${url}/api/agents`);
+  expect(agents.status).toBe(200);
+  expect(await agents.json()).toBeTypeOf("object");
+  const auth = await fetch(`${url}/auth/me`);
+  expect(auth.status).toBe(404);
+  expect(await auth.json()).toEqual({
+    authEnabled: false,
+    authenticated: false,
+  });
+  for (const address of Object.values(networkInterfaces()).flat()) {
+    if (address?.family === "IPv4" && !address.internal) {
+      await expect(
+        fetch(`http://${address.address}:${port}`, {
+          signal: AbortSignal.timeout(2000),
+        }),
+      ).rejects.toThrow();
+    }
+  }
   expect(output).not.toContain(key);
   expect(output).not.toContain("FACTORY_CREDENTIAL_ENCRYPTION_KEY is not set");
 }, 150_000);

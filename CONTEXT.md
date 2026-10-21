@@ -12,11 +12,7 @@ The running Factory process started with `npm run dev`. It serves Factory at `ht
 
 ### Local developer/admin
 
-The single human actor who runs the Factory Server and signs in with the admin token.
-
-### Admin token
-
-The Simple Auth token from `FACTORY_ADMIN_TOKEN` that authenticates the local developer/admin.
+The single human actor who runs and opens the Factory Server locally, without signing in. The server is unauthenticated and bound strictly to `127.0.0.1`; no admin token is used.
 
 ### Credential encryption key
 
