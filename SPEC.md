@@ -80,7 +80,7 @@ Visible outcome: The previously created Factory data is still listed after resta
 
 Authoritative state transition: Factory state is persisted in the SQLite file at `LIBSQL_URL` (default `file:./data/factory.db`) and reloaded on startup.
 
-Slice boundary: The documented `src/mastra/storage.ts` with `LibSQLFactoryStorage` and `vector = undefined`, imported into `src/mastra/index.ts`. `data/` is created automatically when missing, and the DB path resolves against the project root. The README adds a persistence verification section. Unit tests cover directory creation and path resolution.
+Slice boundary: The documented `src/mastra/storage.ts` with `LibSQLFactoryStorage` and `vector = undefined`, imported into `src/mastra/index.ts`. `data/` is created automatically when missing, and the DB path resolves against the project root. The README adds a persistence verification section. Tests cover directory creation and path resolution. They also cover a write/reopen/read round trip through `LibSQLFactoryStorage` against a real temporary SQLite file, with no mocks or fakes.
 
 Acceptance criteria:
 - On a first run with no `data/` directory, the directory and `factory.db` are created automatically.

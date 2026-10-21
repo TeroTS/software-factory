@@ -65,7 +65,9 @@ Set up a runnable, self-hosted Mastra Factory project on the local machine. It u
 - Package manager: npm.
 - Port 4111 and `MASTRACODE_PUBLIC_URL=http://localhost:4111` (defaults). Both appear as commented examples in `.env.example`.
 - `FACTORY_CREDENTIAL_ENCRYPTION_KEY` is required. It's generated with `openssl rand -base64 32`, and `.env.example` holds a placeholder.
-- Tests: Vitest with coverage, scoped to hand-written modules. Generated scaffold code is excluded. No CI workflow.
+- Tests: Vitest with coverage, scoped to hand-written modules. Generated scaffold code is excluded.
+- No CI workflow. Verification runs locally only, and `AGENTS.md` documents that.
+- Storage tests run against a real local SQLite database in a temporary file. No mocks or fakes for storage.
 
 ## Core Business Rules
 
