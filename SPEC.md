@@ -118,13 +118,15 @@ Deferred follow-ups:
 - US-06.
 
 ### US-05: Connect GitHub Copilot as the model provider
+Status: done — the local developer/admin confirms the Copilot integration works and accepts this story as complete.
+
 Primary actor: Local developer/admin
 
 Trigger: The local developer/admin has opened the local Factory Server and has an active GitHub Copilot subscription.
 
 Happy-path action: In **Settings → Models**, choose GitHub Copilot and complete the browser/device sign-in.
 
-Visible outcome: Factory shows GitHub Copilot as connected, and the `github-copilot` model pack is selectable as the default.
+Visible outcome: Factory shows GitHub Copilot as connected, and its live models are selectable as personal and Factory defaults. User acceptance resolves the original model-pack wording in favor of the installed UI's individual-model selection; no named-pack UI is required.
 
 Authoritative state transition: The Copilot credential is stored, encrypted with `FACTORY_CREDENTIAL_ENCRYPTION_KEY`, in the SQLite database.
 

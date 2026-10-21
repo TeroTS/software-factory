@@ -46,4 +46,4 @@ A unit of work on a Factory board, such as an issue that a coding agent session 
 
 ### Model pack
 
-A named set of Build, Plan, and Fast model choices in Factory. The selected default for this project is `github-copilot`.
+A named SDK set of Build, Plan, and Fast model choices; `github-copilot` identifies the built-in Copilot pack. The installed Factory UI selects individual Copilot models as personal and Factory defaults, not named packs. That individual-model selection is accepted for US-05.
