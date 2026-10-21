@@ -1,0 +1,10 @@
+node_modules/
+.mastra/
+coverage/
+data/
+package-lock.json
+AGENTS.md
+CONTEXT.md
+DECISIONS.md
+SPEC.md
+instructions.txt
