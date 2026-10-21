@@ -9,7 +9,7 @@ Source: `DECISIONS.md`
 - `npm install` succeeds, and `npm run dev` starts Factory at `http://localhost:4111` without configuration errors.
 - Simple Auth is enforced on protected Factory endpoints using `FACTORY_ADMIN_TOKEN`.
 - Factory state is stored in `data/factory.db` and persists across restarts.
-- `LocalSandbox` is selected, uses a per-session directory under the sandbox root, and can execute commands.
+- `LocalSandbox` is selected, uses a session directory under the sandbox root, and can execute commands.
 - GitHub Copilot can be connected in the UI with credentials stored encrypted.
 - Typecheck and Vitest with coverage pass. Hand-written modules have at least 80% coverage.
 - `README.md` documents prerequisites, install, env configuration, start commands, and verification steps.
@@ -27,11 +27,11 @@ Source: `DECISIONS.md`
 ### US-01: Start the local Factory Server
 Primary actor: Local developer/admin
 
-Trigger: The developer has cloned the repo, run `npm install`, and copied `.env.example` to `.env` with the required values filled in.
+Trigger: The local developer/admin has cloned the repo, run `npm install`, and copied `.env.example` to `.env` with the required values filled in.
 
 Happy-path action: Run `npm run dev`.
 
-Visible outcome: The server logs its local URL, and `http://localhost:4111` responds.
+Visible outcome: The Factory Server logs its local URL, and `http://localhost:4111` responds.
 
 Authoritative state transition: Factory Server goes from not running to running with the validated local configuration.
 
@@ -50,13 +50,13 @@ Deferred follow-ups:
 ### US-02: Sign in with the admin token
 Primary actor: Local developer/admin
 
-Trigger: The Factory Server is running and the developer opens Factory or calls a protected endpoint.
+Trigger: The Factory Server is running and the local developer/admin opens Factory or calls a protected endpoint.
 
 Happy-path action: Authenticate with `FACTORY_ADMIN_TOKEN`, either on the Factory/Studio login screen or as `Authorization: Bearer <token>`.
 
-Visible outcome: Factory loads for the admin user, and protected API calls succeed.
+Visible outcome: Factory loads for the local developer/admin, and protected API calls succeed.
 
-Authoritative state transition: The request is unauthenticated, then authenticated as the single admin user built from the env.
+Authoritative state transition: The request is unauthenticated, then authenticated as the local developer/admin via the admin token.
 
 Slice boundary: `SimpleAuth` from `@mastra/core/server` is passed to the `auth` option of `MastraFactory`. It has one token-to-user mapping, with `FACTORY_ADMIN_NAME` as an optional display name. Default headers and public/protected paths are unchanged. The README adds an auth verification section with curl commands. Unit tests cover building the token map.
 
@@ -72,9 +72,9 @@ Deferred follow-ups:
 ### US-03: Factory data persists across restarts
 Primary actor: Local developer/admin
 
-Trigger: The developer has created Factory data, such as a Factory in the UI, and restarts the server.
+Trigger: The local developer/admin has created Factory data, such as a Factory in the UI, and restarts the Factory Server.
 
-Happy-path action: Stop the server and run `npm run dev` again.
+Happy-path action: Stop the Factory Server and run `npm run dev` again.
 
 Visible outcome: The previously created Factory data is still listed after restart.
 
@@ -94,18 +94,18 @@ Deferred follow-ups:
 ### US-04: Run a command in LocalSandbox
 Primary actor: Local developer/admin
 
-Trigger: The developer wants to confirm local sandbox execution works.
+Trigger: The local developer/admin wants to confirm local sandbox execution works.
 
-Happy-path action: Run the standalone sandbox check script (an npm script). It uses the same `LocalSandbox` configuration as Factory and runs `git --version` in a per-session directory.
+Happy-path action: Run the standalone sandbox check script (an npm script). It uses the same `LocalSandbox` configuration as Factory and runs `git --version` in a session directory.
 
-Visible outcome: The script prints the command output and the session working directory under the sandbox root.
+Visible outcome: The script prints the command output and the session directory under the sandbox root.
 
-Authoritative state transition: A per-session directory `<sandbox root>/<sessionId>` is created and a command runs there on the local machine.
+Authoritative state transition: A session directory `<sandbox root>/<sessionId>` is created and a command runs there on the local machine.
 
-Slice boundary: The documented `src/mastra/sandbox.ts` `LocalSandbox` callback, imported into `src/mastra/index.ts` in place of the inline sandbox callback. The root is `MASTRACODE_LOCAL_SANDBOX_ROOT`, falling back to `~/.mastracode/web/sandboxes`, and is created when missing. The check script uses that same callback. The README adds a sandbox verification section. Unit tests cover root resolution and creation.
+Slice boundary: The documented `src/mastra/sandbox.ts` `LocalSandbox` callback, imported into `src/mastra/index.ts` in place of the inline sandbox callback. The root is `MASTRACODE_LOCAL_SANDBOX_ROOT`, falling back to `~/.mastracode/web/sandboxes`, and is created when missing. The sandbox check script uses that same callback. The README adds a sandbox verification section. Unit tests cover root resolution and creation.
 
 Acceptance criteria:
-- The check script exits 0 and prints the `git --version` output.
+- The sandbox check script exits 0 and prints the `git --version` output.
 - The sandbox root is created if missing and is writable. The script fails with a clear error if it isn't.
 - Factory uses the explicit `LocalSandbox` callback and selects no remote provider.
 - Hand-written modules (auth, storage, sandbox, env validation) have at least 80% test coverage.
@@ -116,7 +116,7 @@ Deferred follow-ups:
 ### US-05: Connect GitHub Copilot as the model provider
 Primary actor: Local developer/admin
 
-Trigger: The developer is signed in to Factory and has an active GitHub Copilot subscription.
+Trigger: The local developer/admin is signed in to Factory and has an active GitHub Copilot subscription.
 
 Happy-path action: In **Settings → Models**, choose GitHub Copilot and complete the browser/device sign-in.
 
@@ -124,12 +124,12 @@ Visible outcome: Factory shows GitHub Copilot as connected, and the `github-copi
 
 Authoritative state transition: The Copilot credential is stored, encrypted with `FACTORY_CREDENTIAL_ENCRYPTION_KEY`, in the SQLite database.
 
-Slice boundary: No code or env changes. The README adds the connection steps and a warning to keep the encryption key paired with `data/`. Verified manually.
+Slice boundary: No code or env changes. The README adds the connection steps and a warning to keep the credential encryption key paired with `data/`. Verified manually.
 
 Acceptance criteria:
 - The Copilot sign-in completes and the provider shows as connected.
-- After a server restart, the Copilot connection is still usable.
-- No missing-encryption warning appears in the server logs.
+- After a Factory Server restart, the Copilot connection is still usable.
+- No missing-encryption warning appears in the Factory Server logs.
 
 Deferred follow-ups:
 - US-06.

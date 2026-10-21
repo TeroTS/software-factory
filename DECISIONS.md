@@ -12,13 +12,13 @@ Set up a runnable, self-hosted Mastra Factory project on the local machine. It u
 - `npm run dev` starts the Factory Server locally without configuration errors at `http://localhost:4111`.
 - Simple Auth is enforced. Requests to protected routes without a token are rejected, and requests with a valid token succeed.
 - The SQLite database is created automatically under `data/` and persists across restarts.
-- `LocalSandbox` is selected, the sandbox root exists and is writable, and a standalone check runs a command through `LocalSandbox`.
+- `LocalSandbox` is selected, the sandbox root exists and is writable, and the sandbox check script runs a command through `LocalSandbox`.
 - Typecheck and Vitest with coverage pass. Hand-written modules have at least 80% coverage.
 - `README.md` documents prerequisites, install, env config, start commands, and verification steps.
 
 ## Primary Roles / Actors
 
-- **Local developer/admin:** runs the server and signs in with the admin token.
+- **Local developer/admin:** runs the Factory Server and signs in with the admin token.
 - **Coding agent session:** runs commands in `LocalSandbox` on the local machine.
 
 ## Non-Goals
@@ -54,7 +54,7 @@ Set up a runnable, self-hosted Mastra Factory project on the local machine. It u
 ### Interfaces / Contracts
 
 - Auth uses `SimpleAuth` from `@mastra/core/server`, passed to the `auth` option of `MastraFactory`.
-- One admin user is built from the env:
+- The local developer/admin is the one user, built from the env:
   - `FACTORY_ADMIN_TOKEN` (required) is the token.
   - `FACTORY_ADMIN_NAME` (optional) is the display name.
 - Sandbox: the documented explicit `LocalSandbox` callback in `src/mastra/sandbox.ts`, imported into `src/mastra/index.ts`, replacing the inline sandbox callback.
@@ -80,8 +80,8 @@ Set up a runnable, self-hosted Mastra Factory project on the local machine. It u
 ## Data / State / Ownership Decisions
 
 - The SQLite DB under `data/` is the single source of persisted Factory state.
-- The encryption key must stay paired with the DB. The README warns about this.
-- Per-session sandbox working directories are `<sandbox root>/<sessionId>`.
+- The credential encryption key must stay paired with the DB. The README warns about this.
+- Session directories are `<sandbox root>/<sessionId>`.
 
 ## Interface / Contract Expectations
 
@@ -92,7 +92,7 @@ Set up a runnable, self-hosted Mastra Factory project on the local machine. It u
 
 - Local machine only. Node 25.4.0 and npm 11.7.0 are installed. Git must be installed for sandbox checkouts.
 - `.gitignore` covers `.env`, `data/`, build outputs, `node_modules/`, and coverage output.
-- Verification commands: `npm install`, typecheck, `npm test` with coverage, and `npm run dev` with curl auth checks. Also restart the server and confirm persistence, and run the standalone LocalSandbox check script.
+- Verification commands: `npm install`, typecheck, `npm test` with coverage, and `npm run dev` with curl auth checks. Also restart the Factory Server and confirm persistence, and run the sandbox check script.
 
 ## Assumptions
 
