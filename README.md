@@ -4,7 +4,7 @@ Local, self-hosted Mastra Factory project, scaffolded with `create-factory@0.3.0
 
 ## Current delivery
 
-US-01 starts the Factory Server; US-02 opens usable Factory onboarding without signing in; US-03 keeps Factory data in project-local SQLite across restarts. Browser tests verify onboarding and a saved Factory name after restart. The sandbox check script and GitHub Copilot connection verification remain later stories in `SPEC.md`.
+US-01 starts the Factory Server; US-02 opens usable Factory onboarding without signing in; US-03 keeps Factory data in project-local SQLite across restarts; US-04 verifies local command execution with the sandbox check script. Browser tests verify onboarding and a saved Factory name after restart. GitHub Copilot connection verification remains the next story in `SPEC.md`.
 
 **Identity is assigned automatically, not verified.** The local identity provider treats every request as user `local-admin` (display name `Local developer/admin`) in organization `local`. Factory requires an identity and organization to load; no admin token, password, login session, or external identity service is used. Its `/auth/me` reports `authenticated: true`, but that is not proof of who called.
 
@@ -99,6 +99,18 @@ curl --fail http://localhost:4111/web/factory/projects
 
 **Before reusing existing data:** organization scope remains `local`, but per-user settings/credentials previously stored under user `local` are separate from `local-admin` and will not be transferred automatically. Do not rename the fixed identity, delete data, or change scopes to work around missing settings. Back up the database and agree on any required transition first; no legacy-data migration is included.
 
+## Sandbox verification
+
+```bash
+npm run check:sandbox
+```
+
+The standalone sandbox check script uses the same explicit `LocalSandbox` callback as Factory. It needs Git on `PATH`, but no running server, encryption key, database, or provider sign-in. It reads `.env` when present and prints `git --version` output and `Session directory: <sandbox root>/check-<unique ID>`, exiting 0 on success and nonzero with an error on failure.
+
+The sandbox root is `MASTRACODE_LOCAL_SANDBOX_ROOT`, defaulting to `~/.mastracode/web/sandboxes` when unset or blank. Set an absolute path in `.env` to avoid differences between shell and dev-runner working directories. Missing roots are created when Factory configures its sandbox or the script runs; blocked or unwritable roots fail clearly. Each session directory is created when its LocalSandbox starts. Existing sessions are not deleted. The check leaves its empty session directory for inspection; remove only that printed directory when no longer needed.
+
+LocalSandbox executes commands directly as your OS user, without isolation or a remote provider. Commands receive `PATH` and `HOME`, not the server's credential environment. This is not a security boundary: commands can still access your files. Use only trusted repositories, and keep Factory loopback-only.
+
 ## Tests and coverage
 
 ```bash
@@ -132,9 +144,9 @@ For the startup test alone:
 npm test -- tests/startup.test.ts
 ```
 
-The startup test runs the real `npm run dev` without an admin token, using a temporary `.env`, SQLite file, and dynamically selected port. It checks HTML, agent and project API responses without credentials, the fixed user/organization from `/auth/me`, absence of session cookies, the logged loopback URL, and refusal of non-loopback IPv4 connections when interfaces are available. A fresh Chromium context must show Factory onboarding and its enabled start button without a sign-in redirect or password field. The test creates a named Factory record through the real upstream API, verifies its name in the UI, restarts against the same temporary `data/factory.db`, and verifies both the saved name in a fresh browser context and identity stability. Browser and server processes are cleaned up even on failure. The test also checks fail-fast startup without the credential encryption key and with a blocked storage path. Separate integration tests exercise real filesystem write failures, a `LibSQLFactoryStorage` write/close/reopen/read round trip, and Git ignore rules. It does not use your `.env`, SQLite database, or browser profile.
+The startup test runs the real `npm run dev` without an admin token, using a temporary `.env`, SQLite file, and dynamically selected port. It checks HTML, agent and project API responses without credentials, the fixed user/organization from `/auth/me`, absence of session cookies, the logged loopback URL, and refusal of non-loopback IPv4 connections when interfaces are available. A fresh Chromium context must show Factory onboarding and its enabled start button without a sign-in redirect or password field. The test creates a named Factory record through the real upstream API, verifies its name in the UI, restarts against the same temporary `data/factory.db`, and verifies both the saved name in a fresh browser context and identity stability. Browser and server processes are cleaned up even on failure. The test also checks fail-fast startup without the credential encryption key and with a blocked storage path. Separate integration tests exercise real filesystem write failures, a `LibSQLFactoryStorage` write/close/reopen/read round trip, and Git ignore rules. Sandbox tests use temporary roots, execute real Git and working-directory checks through LocalSandbox, verify existing-session preservation and limited environment inheritance, reject invalid session IDs, and invoke the npm script end to end, including command/root failures. It does not use your `.env`, SQLite database, or browser profile.
 
-Coverage reports: `coverage/index.html` and `coverage/lcov.info`. Statements, branches, functions, and lines must each reach 80%. The upstream framework-composition entry is excluded; hand-written environment validation, the local identity provider, and storage configuration are included. New behavior modules must remain covered.
+Coverage reports: `coverage/index.html` and `coverage/lcov.info`. Statements, branches, functions, and lines must each reach 80%. The upstream framework-composition entry is excluded; hand-written environment validation, the local identity provider, storage configuration, and sandbox configuration are included. New behavior modules must remain covered.
 
 `.github/workflows/check.yml` uses `.nvmrc`, `./scripts/setup`, and `./scripts/verify`. No extra CI environment variables or services are required; no deployment pipeline is included. Agent workflow and layout guidance lives in `AGENTS.md`.
 

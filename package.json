@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "mastra factory dev --dir src/mastra",
     "check": "tsc --noEmit",
+    "check:sandbox": "node --env-file-if-exists=.env scripts/check-sandbox.ts",
     "build": "mastra build --dir src/mastra",
     "predev": "node --env-file-if-exists=.env scripts/validate-env.ts",
     "typecheck": "tsc --noEmit",

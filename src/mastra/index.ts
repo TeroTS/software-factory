@@ -1,13 +1,8 @@
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { Mastra } from "@mastra/core/mastra";
-import {
-  createFactorySecretEncryption,
-  LocalFactorySandbox,
-  MastraFactory,
-} from "@mastra/factory";
+import { createFactorySecretEncryption, MastraFactory } from "@mastra/factory";
 import { createLocalIdentityProvider } from "./auth";
 import { validateEnvironment } from "./env";
+import { createSandbox } from "./sandbox";
 import { createFactoryStorage, vector } from "./storage";
 
 validateEnvironment(process.env);
@@ -25,12 +20,7 @@ export const factory = new MastraFactory({
   }),
   storage: createFactoryStorage(process.env),
   vector,
-  sandbox: new LocalFactorySandbox({
-    root:
-      process.env.MASTRACODE_LOCAL_SANDBOX_ROOT?.trim() ||
-      join(homedir(), ".mastracode", "web", "sandboxes"),
-    env: { HOME: homedir() },
-  }),
+  sandbox: createSandbox(process.env),
   publicUrl: process.env.MASTRACODE_PUBLIC_URL,
 });
 

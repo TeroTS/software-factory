@@ -2,7 +2,7 @@
 
 ## Project
 
-A single TypeScript/npm Factory project for a local, self-hosted Mastra Factory Server. US-01 through US-03 are complete: startup, browser-verified local access without signing in, and project-local SQLite persistence across restarts. Sandbox verification and Copilot connection remain later stories.
+A single TypeScript/npm Factory project for a local, self-hosted Mastra Factory Server. US-01 through US-04 are complete: startup, browser-verified local access without signing in, project-local SQLite persistence across restarts, and standalone LocalSandbox command verification. Copilot connection remains the next story.
 
 ## Repo Layout
 
@@ -36,6 +36,7 @@ Setup runs `npm ci` and installs pinned Playwright Chromium; Linux additionally 
 | Unit tests | `npm run test:unit` |
 | Integration/end-to-end tests | `npm run test:integration` |
 | Coverage | `npm run test:coverage` |
+| Sandbox check | `npm run check:sandbox` |
 | Lint | Not configured; existing static checks are formatting and typecheck |
 | Format | `npm run format` |
 | Format-check | `npm run format:check` |
@@ -70,6 +71,7 @@ npm test -- tests/startup.test.ts
 - Factory accepting an auth provider does not mean its bundled login UI supports that provider. In the installed `@mastra/factory@0.24.0`, the UI lacks SimpleAuth token sign-in and rejects `auth: null` with an auth-configuration error. HTTP 200 plus auth-disabled status does not prove UI usability; require the real browser test. Check provider, login-route, and UI compatibility before changing authentication; recheck after upgrades.
 - Factory storage is configured only by `LIBSQL_URL` in `src/mastra/storage.ts`, not `MASTRA_DB_PATH`. Default `data/factory.db` is project-local; old upstream databases are not automatically copied or migrated. Back up and explicitly select an existing file with `LIBSQL_URL` before reusing it, keeping its encryption key. Organization scope remains `local`, but legacy per-user settings/credentials under user `local` are separate from `local-admin`; do not migrate, rekey, or delete developer data implicitly.
 - In the installed dev runner, `MASTRA_PROJECT_ROOT` points to `.mastra`, which is rebuilt on restart. Never use it as the database root. Both `src/mastra` and `.mastra/output` are two levels below the real project root; the storage resolver anchors there and the real restart/browser test guards this behavior.
+- `src/mastra/sandbox.ts` exports the shared LocalSandbox callback used by Factory and `npm run check:sandbox`. The installed Factory accepts callbacks (labeled `custom` by its adapter); returned sandboxes are still provider `local`, not remote. Root creation/write checks run at configuration time; session directories are created on start. Commands receive HOME and upstream's default PATH, not the full host environment. Keep existing sessions intact; the check leaves its uniquely named directory for inspection. Tests must set `MASTRACODE_LOCAL_SANDBOX_ROOT` to a temporary root rather than use developer sessions.
 - Startup integration tests require macOS/Linux process groups and Playwright Chromium. They create a temporary `.env` and project-local SQLite file, use a dynamic port and fresh browser contexts, and verify a named Factory record after restart. Filesystem and storage round-trip integration tests also use temporary files and real SQLite. No provider sign-in is required; browser/server cleanup runs on failure.
 - Build copies the bundled Factory UI and installs output dependencies, so verification may require network access. Initial setup/build/tests can take longer than warm runs. Do not infer failure from elapsed time or automatically retry with a longer timeout; if output stalls, report status and ask.
 - Upstream Stagehand/OpenAI dependencies emit a Zod peer warning; a zero exit status is still success.

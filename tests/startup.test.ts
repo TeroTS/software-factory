@@ -89,6 +89,7 @@ it("local developer/admin sees saved Factory data in the browser after restartin
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     MASTRA_TELEMETRY_DISABLED: "1",
+    MASTRACODE_LOCAL_SANDBOX_ROOT: join(directory, "sandboxes"),
   };
   delete env.LIBSQL_URL;
   delete env.MASTRA_DB_PATH;
@@ -148,6 +149,7 @@ it("local developer/admin sees saved Factory data in the browser after restartin
   }
   expect(existsSync(join(directory, "data"))).toBe(false);
   await startServer();
+  expect(existsSync(join(directory, "sandboxes"))).toBe(true);
   expect(existsSync(join(directory, "data", "factory.db"))).toBe(true);
   const agents = await fetch(`${url}/api/agents`);
   expect(agents.status).toBe(200);
