@@ -10,7 +10,7 @@ US-01 starts the Factory Server. Admin-token authentication, project-local persi
 
 ## Prerequisites
 
-- Node.js 22.19.0 or newer, with npm. Node 22.19.0 is the CI baseline.
+- Node.js 22.19.0 with npm for the reproducible baseline, pinned in `.nvmrc` and used by CI. The package supports newer Node versions.
 - Git, available on `PATH`.
 - OpenSSL for generating secrets.
 - macOS or Linux for the startup test's process-group cleanup.
@@ -21,11 +21,11 @@ LocalSandbox runs commands as your OS user without isolation. Only use trusted r
 ## Install
 
 ```bash
-npm install
+./scripts/setup
 cp .env.example .env
 ```
 
-The dependency lockfile is committed. Upstream Stagehand/OpenAI dependencies currently produce a Zod peer-version warning; installation still succeeds.
+`./scripts/setup` runs non-interactive `npm ci` using the committed lockfile. If you use nvm, run `nvm use` first. Do not overwrite an existing `.env`; copying it is needed only before starting the Factory Server, not for verification. Upstream Stagehand/OpenAI dependencies currently produce a Zod peer-version warning; installation still succeeds.
 
 ## Environment configuration
 
@@ -71,10 +71,28 @@ Storage still uses the upstream local SQLite path; US-03 will move configuration
 ## Tests and coverage
 
 ```bash
-npm run typecheck
-npm test
+./scripts/verify
+```
+
+This is the same verification CI runs: formatting → typecheck → tests with coverage → build. It stops at the first failure. No separate linter is configured. Verification needs no `.env`, external database service, or cloud authentication. Build copies the upstream Factory UI into ignored `src/mastra/public/` and creates ignored `.mastra/` output, including installed dependencies; this step may need network access.
+
+Fast and individual checks:
+
+```bash
+npm run test:unit
+npm run test:integration
 npm run test:coverage
+npm run typecheck
 npm run format:check
+npm run build
+```
+
+Single-file, module, and test-case targets:
+
+```bash
+npm test -- src/mastra/env.test.ts
+npm run test:unit -- src/mastra
+npm test -- src/mastra/env.test.ts -t "accepts valid configuration"
 ```
 
 For the startup test alone:
@@ -87,7 +105,7 @@ The startup test runs the real `npm run dev` with a temporary `.env`, SQLite fil
 
 Coverage reports: `coverage/index.html` and `coverage/lcov.info`. Statements, branches, functions, and lines must each reach 80%. The upstream framework-composition entry is excluded; hand-written environment validation is included. New behavior modules must remain covered.
 
-`.github/workflows/check.yml` runs typecheck, formatting, tests, and coverage. This minimal check satisfies the repository-wide coverage policy; no deployment pipeline is included.
+`.github/workflows/check.yml` uses `.nvmrc`, `./scripts/setup`, and `./scripts/verify`. No extra CI environment variables or services are required; no deployment pipeline is included. Agent workflow and layout guidance lives in `AGENTS.md`.
 
 ## Scaffold provenance
 

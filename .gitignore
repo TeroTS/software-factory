@@ -3,6 +3,7 @@ node_modules/
 .env.*
 !.env.example
 .mastra/
+src/mastra/public/
 data/
 dist/
 build/
