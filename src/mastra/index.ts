@@ -9,13 +9,13 @@ import {
   MastraFactory,
 } from "@mastra/factory";
 import { LibSQLFactoryStorage } from "@mastra/libsql";
+import { createLocalIdentityProvider } from "./auth";
 import { validateEnvironment } from "./env";
 
 validateEnvironment(process.env);
 
 export const factory = new MastraFactory({
-  // Single-user local access only; never expose this server through a proxy or tunnel.
-  auth: null,
+  auth: createLocalIdentityProvider(),
   secretEncryption: createFactorySecretEncryption({
     primary: {
       id: "v1",

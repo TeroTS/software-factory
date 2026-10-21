@@ -1,18 +1,18 @@
 # Local Self-Hosted Mastra Factory Decisions
 
-Status: Draft v1, amended by the user-approved single-user local-access decision
+Status: Draft v1, amended by the user-approved local identity provider decision
 
-Scope amendment: authentication is intentionally disabled and the Factory Server must bind strictly to `127.0.0.1`. This supersedes the original Simple Auth requirement in `instructions.txt` and the abandoned token-login adapter plan.
+Scope amendment: use a local identity provider that assigns every request the same local developer/admin identity without verifying credentials. No login, token, password, session storage, or external identity service is required. The Factory Server must remain bound strictly to `127.0.0.1`. This supersedes both the original Simple Auth requirement and the later `auth: null` approach, which the bundled UI rejects. The provider is not an access-control boundary; anything able to reach the server is treated as the local developer/admin. Compatibility is verified by the real browser regression test.
 
 ## Problem Summary
 
-Set up a runnable, self-hosted Mastra Factory project on the local machine. It uses single-user loopback-only access without authentication, local SQLite storage via libSQL, and `LocalSandbox`. No cloud services or Mastra platform resources. Source requirements: `instructions.txt`.
+Set up a runnable, self-hosted Mastra Factory project on the local machine. It uses single-user loopback-only access with automatic local identity and no credential verification, local SQLite storage via libSQL, and `LocalSandbox`. No cloud services or Mastra platform resources. Source requirements: `instructions.txt`.
 
 ## Goals and Success Criteria
 
 - The project installs with `npm install`.
 - `npm run dev` starts the Factory Server locally without configuration errors at `http://localhost:4111`.
-- Factory opens without credentials, authentication is explicitly disabled, and the server listens only on `127.0.0.1`.
+- Factory opens without credentials using a local identity provider, and the server listens only on `127.0.0.1`.
 - The SQLite database is created automatically under `data/` and persists across restarts.
 - `LocalSandbox` is selected, the sandbox root exists and is writable, and the sandbox check script runs a command through `LocalSandbox`.
 - Typecheck and Vitest with coverage pass. Hand-written modules have at least 80% coverage.
@@ -25,7 +25,7 @@ Set up a runnable, self-hosted Mastra Factory project on the local machine. It u
 
 ## Non-Goals
 
-- Authentication/login UI, Mastra platform auth, PostgreSQL, Turso, PlatformSandbox, E2B, Docker, Redis.
+- Credential verification, login UI, external identity services, Mastra platform auth, PostgreSQL, Turso, PlatformSandbox, E2B, Docker, Redis.
 - GitHub App setup, Linear/Slack/Jira/GitLab/incident.io integrations.
 - AWS Bedrock, GitHub Models (`GITHUB_TOKEN`), and other model providers.
 - A full end-to-end Factory session (issue → plan → PR).
@@ -55,8 +55,10 @@ Set up a runnable, self-hosted Mastra Factory project on the local machine. It u
 
 ### Interfaces / Contracts
 
-- Pass `auth: null` explicitly to `MastraFactory`; bind the Mastra server to `127.0.0.1`.
-- `FACTORY_ADMIN_TOKEN` and `FACTORY_ADMIN_NAME` are not required or used; no local identity/session mapping is added.
+- Pass a minimal local identity provider implementing the installed Mastra auth contract to `MastraFactory`; keep the Mastra server bound to `127.0.0.1`.
+- Assign one fixed, non-secret identity (`local-admin`, display name `Local developer/admin`) independently of supplied headers, tokens, cookies, or query parameters. Authorize that identity through the upstream provider contract. User-approved compatibility addition: include the fixed organization ID `local`, required by Factory's project-list endpoint. Do not impersonate a hosted provider or add organization-management UI, provisioning, or membership management.
+- `FACTORY_ADMIN_TOKEN` and `FACTORY_ADMIN_NAME` are not required or used. No login endpoints, session cookies, session storage, provider upgrades, new dependencies, or bundled-UI edits are planned.
+- Before wiring the provider, check upstream capability/licensing requirements and identity-based storage scoping. Do not rename, migrate, delete, or silently hide existing developer data. If compatibility requires broader changes, stop and bring the decision back to the user.
 - Sandbox: the documented explicit `LocalSandbox` callback in `src/mastra/sandbox.ts`, imported into `src/mastra/index.ts`, replacing the inline sandbox callback.
 - No new HTTP API is defined, so no OpenAPI contract is needed.
 
@@ -73,7 +75,7 @@ Set up a runnable, self-hosted Mastra Factory project on the local machine. It u
 
 - Fail fast at startup if `FACTORY_CREDENTIAL_ENCRYPTION_KEY` is missing, blank, or malformed.
 - No credentials or secrets are hardcoded. Secrets are never logged.
-- Factory endpoints are unauthenticated and accessible only through the loopback listener. Never expose the server through a proxy, tunnel, or LAN address. Local processes/users able to reach it can access its capabilities, including command execution.
+- Requests are automatically assigned the local identity without credential verification and are accessible only through the loopback listener. Never expose the server through a proxy, tunnel, or LAN address. Local processes/users able to reach it can access its capabilities, including command execution.
 
 ## UX / Workflow Rules
 
@@ -87,7 +89,7 @@ Set up a runnable, self-hosted Mastra Factory project on the local machine. It u
 
 ## Interface / Contract Expectations
 
-- Upstream Factory HTTP schemas remain unchanged; authentication is disabled for this local-only deployment.
+- Upstream Factory HTTP schemas remain unchanged. Its existing `/auth/me` reports the fixed local identity as authenticated, but this represents identity assignment, not proof of the caller's identity. Browser onboarding must load without sign-in; an HTTP 200 alone is insufficient.
 
 ## Operational / Deployment Constraints
 

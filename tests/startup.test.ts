@@ -70,60 +70,89 @@ it("local developer/admin opens the loopback-only Factory Server without an admi
   delete env.FACTORY_ADMIN_TOKEN;
   delete env.FACTORY_CREDENTIAL_ENCRYPTION_KEY;
   delete env.PORT;
-  const child = spawn("npm", ["run", "dev"], {
-    cwd: directory,
-    env,
-    detached: true,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let output = "";
-  child.stdout.on("data", (data: Buffer) => {
-    output += data.toString();
-  });
-  child.stderr.on("data", (data: Buffer) => {
-    output += data.toString();
-  });
-  stop = async () => {
-    if (child.exitCode !== null) return;
-    const exited = once(child, "exit");
-    process.kill(-child.pid!, "SIGTERM");
-    const force = setTimeout(() => {
-      try {
-        process.kill(-child.pid!, "SIGKILL");
-      } catch {}
-    }, 5000);
-    await exited;
-    clearTimeout(force);
-  };
   const url = `http://localhost:${port}`;
-  await expect
-    .poll(
-      async () => {
-        if (child.exitCode !== null)
-          throw new Error(`Factory exited: ${output}`);
+  async function startServer(): Promise<void> {
+    const child = spawn("npm", ["run", "dev"], {
+      cwd: directory,
+      env,
+      detached: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let output = "";
+    child.stdout.on("data", (data: Buffer) => {
+      output += data.toString();
+    });
+    child.stderr.on("data", (data: Buffer) => {
+      output += data.toString();
+    });
+    stop = async () => {
+      if (child.exitCode !== null) return;
+      const exited = once(child, "exit");
+      process.kill(-child.pid!, "SIGTERM");
+      const force = setTimeout(() => {
         try {
-          const response = await fetch(url, {
-            signal: AbortSignal.timeout(2000),
-          });
-          const body = await response.text();
-          return response.ok && body.includes("<html");
-        } catch {
-          return false;
-        }
-      },
-      { timeout: 120_000, interval: 1000 },
-    )
-    .toBe(true);
-  expect(output).toContain(`http://127.0.0.1:${port}`);
+          process.kill(-child.pid!, "SIGKILL");
+        } catch {}
+      }, 5000);
+      await exited;
+      clearTimeout(force);
+    };
+    await expect
+      .poll(
+        async () => {
+          if (child.exitCode !== null)
+            throw new Error(`Factory exited: ${output}`);
+          try {
+            const response = await fetch(url, {
+              signal: AbortSignal.timeout(2000),
+            });
+            const body = await response.text();
+            return response.ok && body.includes("<html");
+          } catch {
+            return false;
+          }
+        },
+        { timeout: 120_000, interval: 1000 },
+      )
+      .toBe(true);
+    expect(output).toContain(`http://127.0.0.1:${port}`);
+    expect(output).not.toContain(key);
+    expect(output).not.toContain(
+      "FACTORY_CREDENTIAL_ENCRYPTION_KEY is not set",
+    );
+  }
+  await startServer();
   const agents = await fetch(`${url}/api/agents`);
   expect(agents.status).toBe(200);
   expect(await agents.json()).toBeTypeOf("object");
   const auth = await fetch(`${url}/auth/me`);
-  expect(auth.status).toBe(404);
-  expect(await auth.json()).toEqual({
-    authEnabled: false,
-    authenticated: false,
+  expect(auth.status).toBe(200);
+  const identityStatus = await auth.json();
+  expect(identityStatus).toMatchObject({
+    authenticated: true,
+    provider: "local-identity",
+    user: {
+      userId: "local-admin",
+      name: "Local developer/admin",
+      organizationId: "local",
+    },
   });
+  expect(auth.headers.get("set-cookie")).toBeNull();
+  const suppliedCredentials = await fetch(
+    `${url}/auth/me?userId=another-user`,
+    {
+      headers: {
+        Authorization: "Bearer another-user",
+        Cookie: "mastra-token=another-user",
+      },
+    },
+  );
+  expect(suppliedCredentials.status).toBe(200);
+  expect(await suppliedCredentials.json()).toEqual(identityStatus);
+  expect(suppliedCredentials.headers.get("set-cookie")).toBeNull();
+  const projects = await fetch(`${url}/web/factory/projects`);
+  expect(projects.status).toBe(200);
+  expect(await projects.json()).toEqual({ projects: [] });
   for (const address of Object.values(networkInterfaces()).flat()) {
     if (address?.family === "IPv4" && !address.internal) {
       await expect(
@@ -133,9 +162,6 @@ it("local developer/admin opens the loopback-only Factory Server without an admi
       ).rejects.toThrow();
     }
   }
-  expect(output).not.toContain(key);
-  expect(output).not.toContain("FACTORY_CREDENTIAL_ENCRYPTION_KEY is not set");
-
   const browser = await chromium.launch();
   try {
     const context = await browser.newContext();
@@ -154,7 +180,15 @@ it("local developer/admin opens the loopback-only Factory Server without an admi
     expect(await start.isEnabled()).toBe(true);
     expect(new URL(page.url()).pathname).not.toBe("/signin");
     expect(await page.locator('input[type="password"]').count()).toBe(0);
+    expect(await context.cookies()).toEqual([]);
   } finally {
     await browser.close();
   }
-}, 150_000);
+
+  await stop?.();
+  await startServer();
+  const reopened = await fetch(`${url}/auth/me`);
+  expect(reopened.status).toBe(200);
+  expect(await reopened.json()).toEqual(identityStatus);
+  expect(reopened.headers.get("set-cookie")).toBeNull();
+}, 300_000);

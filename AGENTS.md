@@ -2,7 +2,7 @@
 
 ## Project
 
-A single TypeScript/npm Factory project for a local, self-hosted Mastra Factory Server. US-01 is complete. US-02 is reopened: HTTP access works without authentication, but the real browser test fails because the bundled UI requires an auth provider. Project-local persistence and sandbox verification remain later stories.
+A single TypeScript/npm Factory project for a local, self-hosted Mastra Factory Server. US-01 and US-02 are complete: startup and browser-verified local access without signing in, using a fixed local identity provider. Project-local persistence and sandbox verification remain later stories.
 
 ## Repo Layout
 
@@ -66,9 +66,9 @@ npm test -- tests/startup.test.ts
 ## Gotchas and Manual Steps
 
 - Only starting the Factory Server needs `.env`: copy `.env.example` without overwriting an existing `.env`, then fill `FACTORY_CREDENTIAL_ENCRYPTION_KEY`. No admin token is required or used. Generate the encryption key with `openssl rand -base64 32`; never log or commit secrets.
-- Authentication is intentionally disabled (`auth: null`) for one local developer/admin. Keep the server bound strictly to `127.0.0.1`, normally port 4111; never expose it through a proxy, tunnel, or LAN address. Local processes/users that can reach it can access its capabilities, including command execution. Do not add authentication implicitly during maintenance.
+- `src/mastra/auth.ts` assigns every request fixed user `local-admin` and organization `local` without credential verification or sessions. This is identity assignment, not access protection, even though `/auth/me` reports `authenticated: true`. Keep the server bound strictly to `127.0.0.1`, normally port 4111; never expose it through a proxy, tunnel, or LAN address. Anything that can reach it is treated as the local developer/admin. Do not rename the fixed identity or introduce login implicitly.
 - Factory accepting an auth provider does not mean its bundled login UI supports that provider. In the installed `@mastra/factory@0.24.0`, the UI lacks SimpleAuth token sign-in and rejects `auth: null` with an auth-configuration error. HTTP 200 plus auth-disabled status does not prove UI usability; require the real browser test. Check provider, login-route, and UI compatibility before changing authentication; recheck after upgrades.
-- Storage still uses the upstream local path. `MASTRA_DB_PATH` can point to a dedicated absolute SQLite filename in an existing writable directory until US-03 lands.
+- Storage still uses the upstream local path. Use `MASTRA_DB_PATH` with a dedicated absolute SQLite filename in an existing writable directory until US-03 lands. Organization scope remains `local`, but legacy per-user settings/credentials under user `local` are separate from `local-admin`; do not migrate, rekey, or delete developer data implicitly. Agree on any legacy-data transition before reusing an existing database.
 - Startup integration tests require macOS/Linux process groups and Playwright Chromium. They create a temporary `.env` and SQLite file, use a dynamic port and a fresh browser context, and clean up the browser/server on failure. No provider sign-in is required.
 - Build copies the bundled Factory UI and installs output dependencies, so verification may require network access. Initial setup/build/tests can take longer than warm runs. Do not infer failure from elapsed time or automatically retry with a longer timeout; if output stalls, report status and ask.
 - Upstream Stagehand/OpenAI dependencies emit a Zod peer warning; a zero exit status is still success.

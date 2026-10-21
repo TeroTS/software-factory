@@ -12,7 +12,11 @@ The running Factory process started with `npm run dev`. It serves Factory at `ht
 
 ### Local developer/admin
 
-The single human actor who runs and opens the Factory Server locally, without signing in. The server is unauthenticated and bound strictly to `127.0.0.1`; no admin token is used.
+The single human actor who runs and opens the Factory Server locally, without signing in. The local identity provider assigns requests this actor's fixed identity without verifying the caller. The server remains bound strictly to `127.0.0.1`; no admin token is used.
+
+### Local identity provider
+
+The Factory auth adapter that assigns every request the same non-secret `local-admin` identity, displayed as `Local developer/admin`, with the fixed organization ID `local` required by Factory, without credential verification or session storage. It satisfies Factory's identity contract but supplies no access protection: anything able to reach the server is treated as the local developer/admin.
 
 ### Credential encryption key
 

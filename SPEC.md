@@ -3,12 +3,12 @@
 Source: `DECISIONS.md`
 
 ## Summary
-- A local, self-hosted Mastra Factory project in this repo root (TypeScript, npm), used by one local developer/admin without authentication and bound strictly to `127.0.0.1`. It uses local SQLite storage via `LibSQLFactoryStorage` under `data/`, `LocalSandbox` for agent execution, and GitHub Copilot as the model provider. No cloud services.
-- User-approved scope revision: single-user loopback-only access replaces the original Simple Auth requirement.
+- A local, self-hosted Mastra Factory project in this repo root (TypeScript, npm), used by one local developer/admin without signing in and bound strictly to `127.0.0.1`. A local identity provider assigns requests a fixed identity without verifying credentials. It uses local SQLite storage via `LibSQLFactoryStorage` under `data/`, `LocalSandbox` for agent execution, and GitHub Copilot as the model provider. No cloud services.
+- User-approved scope revision: a local identity provider replaces the original Simple Auth requirement and the subsequent `auth: null` approach, which the bundled UI rejects. This supplies identity, not access protection; browser compatibility is verified by the real-server Chromium test.
 
 ## Goals
 - `npm install` succeeds, and `npm run dev` starts Factory at `http://localhost:4111` without configuration errors.
-- Factory opens without signing in or configuring an admin token; authentication is explicitly disabled and the server binds only to `127.0.0.1`.
+- Factory opens without signing in or configuring an admin token; requests receive the fixed local identity and the server binds only to `127.0.0.1`.
 - Factory state is stored in `data/factory.db` and persists across restarts.
 - `LocalSandbox` is selected, uses a session directory under the sandbox root, and can execute commands.
 - GitHub Copilot can be connected in the UI with credentials stored encrypted.
@@ -16,7 +16,7 @@ Source: `DECISIONS.md`
 - `README.md` documents prerequisites, install, env configuration, start commands, and verification steps.
 
 ## Non-Goals
-- Authentication/login UI, Mastra platform auth, PostgreSQL, Turso, PlatformSandbox, E2B, Docker, Redis.
+- Credential verification, login UI, external identity services, Mastra platform auth, PostgreSQL, Turso, PlatformSandbox, E2B, Docker, Redis.
 - GitHub App setup, Linear/Slack/Jira/GitLab/incident.io integrations.
 - AWS Bedrock, GitHub Models (`GITHUB_TOKEN`), and other model providers.
 - A full end-to-end Factory session (issue → plan → PR).
@@ -57,13 +57,16 @@ Happy-path action: Open Factory without supplying credentials.
 
 Visible outcome: Factory content and API responses load without a login step.
 
-Authoritative state transition: The local request completes without establishing an authenticated identity or session.
+Authoritative state transition: Each request is assigned the same fixed local developer/admin identity through the provider contract, without credential verification or a persisted login session.
 
-Slice boundary: Keep `auth: null` in `MastraFactory` and bind the server explicitly to `127.0.0.1`. Remove the unused admin-token requirement from environment validation and setup documentation. No custom login UI, token adapter, or new HTTP API is added.
+Slice boundary: Add a minimal local identity provider in `src/mastra/auth.ts`, implementing the installed upstream Mastra auth contract, and pass it to `MastraFactory` instead of `auth: null`. Keep the server explicitly bound to `127.0.0.1`, the encryption key required, and admin-token variables unused. Keep upstream HTTP schemas and bundled UI unchanged. Include the fixed organization ID `local`, required by upstream Factory project listing. No custom login UI, login endpoint, token adapter, organization-management UI or provisioning, or session storage is added.
 
 Acceptance criteria:
 - Startup succeeds without `FACTORY_ADMIN_TOKEN`; `FACTORY_CREDENTIAL_ENCRYPTION_KEY` remains required and is never logged.
-- Factory HTML and an existing Factory API endpoint respond without credentials; the upstream auth status reports authentication disabled.
+- In a fresh browser context against a real server and temporary SQLite file, Factory renders its onboarding heading and enabled "Create my first factory" button without a sign-in redirect, credential form, or auth-configuration error.
+- Factory HTML and an existing Factory API endpoint respond without credentials; the existing `/auth/me` reports `authenticated: true` with the fixed `local-admin` identity, organization ID `local`, and no token or session cookie.
+- Missing or arbitrary authentication headers/cookies cannot select a different identity; the non-secret identity remains stable across provider instances and server starts.
+- Existing developer data is not migrated, deleted, or silently made inaccessible by a change of identity scope. Inspect upstream scoping before implementation; any required compatibility change needs an explicit decision.
 - The server listens only on `127.0.0.1`, not LAN or wildcard addresses.
 - The README warns against proxies, tunnels, and LAN exposure and explains that local processes/users able to reach the server can access its capabilities, including command execution.
 

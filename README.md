@@ -4,9 +4,11 @@ Local, self-hosted Mastra Factory project, scaffolded with `create-factory@0.3.0
 
 ## Current delivery
 
-US-01 starts the Factory Server. US-02's intended single-user access without signing in is **blocked**: the bundled UI displays "This MastraCode server has no authentication provider configured" when auth is disabled. The new browser regression test fails on this error; successful HTML/API responses alone do not mean Factory is usable. Project-local persistence configuration, the sandbox check script, and GitHub Copilot connection verification remain separate stories in `SPEC.md`.
+US-01 starts the Factory Server; US-02 opens usable Factory onboarding without signing in, verified in a real browser. Project-local persistence configuration, the sandbox check script, and GitHub Copilot connection verification remain separate stories in `SPEC.md`.
 
-**Authentication is intentionally disabled.** The server binds strictly to `127.0.0.1`. No admin token or login is needed. Never expose it through a proxy, tunnel, or LAN address. Local processes/users able to reach it can access its capabilities, including command execution; loopback is not complete isolation.
+**Identity is assigned automatically, not verified.** The local identity provider treats every request as user `local-admin` (display name `Local developer/admin`) in organization `local`. Factory requires an identity and organization to load; no admin token, password, login session, or external identity service is used. Its `/auth/me` reports `authenticated: true`, but that is not proof of who called.
+
+The server binds strictly to `127.0.0.1`. Never expose it through a proxy, tunnel, or LAN address. Anything able to reach it is treated as the local developer/admin and can access its capabilities, including command execution; loopback is not complete isolation.
 
 ## Prerequisites
 
@@ -63,15 +65,19 @@ The Factory Server logs its local URL. Open `http://localhost:4111`, or verify t
 curl --fail http://localhost:4111
 ```
 
-The API responds without credentials, but the browser currently stops at the upstream auth-configuration error instead of loading usable Factory content. Verify the API response:
+Factory opens directly without a login step. Verify API access and the assigned identity without sending credentials:
 
 ```bash
 curl --fail http://localhost:4111/api/agents
+curl --fail http://localhost:4111/web/factory/projects
+curl --fail http://localhost:4111/auth/me
 ```
 
 Stop with Ctrl-C. No PostgreSQL, Redis, Docker, or Mastra platform provisioning is required.
 
-Storage still uses the upstream local SQLite path; US-03 will move configuration to `data/factory.db` and verify persistence. To keep this intermediate server separate from any existing Mastra Code database, set `MASTRA_DB_PATH` in your shell to a dedicated absolute SQLite filename in an existing writable directory.
+Storage still uses the upstream local SQLite path; US-03 will move configuration to `data/factory.db` and verify Factory-data persistence. Set `MASTRA_DB_PATH` in your shell to a dedicated absolute SQLite filename in an existing writable directory to keep this server separate from an existing Mastra Code database.
+
+**Before reusing existing data:** organization scope remains `local`, but per-user settings/credentials previously stored under user `local` are separate from `local-admin` and will not be transferred automatically. Do not rename the fixed identity, delete data, or change scopes to work around missing settings. Back up the database and agree on any required transition first; no legacy-data migration is included.
 
 ## Tests and coverage
 
@@ -106,9 +112,9 @@ For the startup test alone:
 npm test -- tests/startup.test.ts
 ```
 
-The startup test runs the real `npm run dev` without an admin token, using a temporary `.env`, SQLite file, and dynamically selected port. It checks HTML and API responses without credentials, auth-disabled status, the logged loopback URL, and refusal of connections to non-loopback IPv4 addresses when available. A fresh Chromium context must then show Factory onboarding and its enabled start button, with no sign-in redirect or password field; this currently fails on the upstream auth-disabled error screen. Browser and server processes are cleaned up even on failure. The test also checks fail-fast startup without the credential encryption key. It does not use your `.env`, SQLite database, or browser profile.
+The startup test runs the real `npm run dev` without an admin token, using a temporary `.env`, SQLite file, and dynamically selected port. It checks HTML, agent and project API responses without credentials, the fixed user/organization from `/auth/me`, absence of session cookies, the logged loopback URL, and refusal of non-loopback IPv4 connections when interfaces are available. A fresh Chromium context must show Factory onboarding and its enabled start button without a sign-in redirect or password field. The server is restarted against the same temporary database to verify identity stability; Factory-data persistence remains US-03. Browser and server processes are cleaned up even on failure. The test also checks fail-fast startup without the credential encryption key. It does not use your `.env`, SQLite database, or browser profile.
 
-Coverage reports: `coverage/index.html` and `coverage/lcov.info`. Statements, branches, functions, and lines must each reach 80%. The upstream framework-composition entry is excluded; hand-written environment validation is included. New behavior modules must remain covered.
+Coverage reports: `coverage/index.html` and `coverage/lcov.info`. Statements, branches, functions, and lines must each reach 80%. The upstream framework-composition entry is excluded; hand-written environment validation and the local identity provider are included. New behavior modules must remain covered.
 
 `.github/workflows/check.yml` uses `.nvmrc`, `./scripts/setup`, and `./scripts/verify`. No extra CI environment variables or services are required; no deployment pipeline is included. Agent workflow and layout guidance lives in `AGENTS.md`.
 
