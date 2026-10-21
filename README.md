@@ -4,7 +4,7 @@ Local, self-hosted Mastra Factory project, scaffolded with `create-factory@0.3.0
 
 ## Current delivery
 
-US-01 starts the Factory Server; US-02 provides single-user local access without signing in. Project-local persistence configuration, the sandbox check script, and GitHub Copilot connection verification remain separate stories in `SPEC.md`.
+US-01 starts the Factory Server. US-02's intended single-user access without signing in is **blocked**: the bundled UI displays "This MastraCode server has no authentication provider configured" when auth is disabled. The new browser regression test fails on this error; successful HTML/API responses alone do not mean Factory is usable. Project-local persistence configuration, the sandbox check script, and GitHub Copilot connection verification remain separate stories in `SPEC.md`.
 
 **Authentication is intentionally disabled.** The server binds strictly to `127.0.0.1`. No admin token or login is needed. Never expose it through a proxy, tunnel, or LAN address. Local processes/users able to reach it can access its capabilities, including command execution; loopback is not complete isolation.
 
@@ -14,6 +14,7 @@ US-01 starts the Factory Server; US-02 provides single-user local access without
 - Git, available on `PATH`.
 - OpenSSL for generating secrets.
 - macOS or Linux for the startup test's process-group cleanup.
+- Chromium for the browser test; `./scripts/setup` installs the version matched to the pinned Playwright library. On Linux, install its system libraries with `npm exec -- playwright-core install-deps chromium` (may require administrator privileges).
 - Network access for dependency installation; no cloud account is needed to start.
 
 LocalSandbox runs commands as your OS user without isolation. Only use trusted repositories.
@@ -25,7 +26,7 @@ LocalSandbox runs commands as your OS user without isolation. Only use trusted r
 cp .env.example .env
 ```
 
-`./scripts/setup` runs non-interactive `npm ci` using the committed lockfile. If you use nvm, run `nvm use` first. Do not overwrite an existing `.env`; copying it is needed only before starting the Factory Server, not for verification. Upstream Stagehand/OpenAI dependencies currently produce a Zod peer-version warning; installation still succeeds.
+`./scripts/setup` runs non-interactive `npm ci` using the committed lockfile, then downloads Chromium for browser tests. If you use nvm, run `nvm use` first. Do not overwrite an existing `.env`; copying it is needed only before starting the Factory Server, not for verification. Upstream Stagehand/OpenAI dependencies currently produce a Zod peer-version warning; installation still succeeds.
 
 ## Environment configuration
 
@@ -62,7 +63,7 @@ The Factory Server logs its local URL. Open `http://localhost:4111`, or verify t
 curl --fail http://localhost:4111
 ```
 
-Open Factory directly; no sign-in is required. Verify an API response without credentials:
+The API responds without credentials, but the browser currently stops at the upstream auth-configuration error instead of loading usable Factory content. Verify the API response:
 
 ```bash
 curl --fail http://localhost:4111/api/agents
@@ -105,7 +106,7 @@ For the startup test alone:
 npm test -- tests/startup.test.ts
 ```
 
-The startup test runs the real `npm run dev` without an admin token, using a temporary `.env`, SQLite file, and dynamically selected port. It checks HTML and API responses without credentials, auth-disabled status, the logged loopback URL, and refusal of connections to non-loopback IPv4 addresses when available, then stops the process group. It also checks fail-fast startup without the credential encryption key. It does not use your `.env` or SQLite database.
+The startup test runs the real `npm run dev` without an admin token, using a temporary `.env`, SQLite file, and dynamically selected port. It checks HTML and API responses without credentials, auth-disabled status, the logged loopback URL, and refusal of connections to non-loopback IPv4 addresses when available. A fresh Chromium context must then show Factory onboarding and its enabled start button, with no sign-in redirect or password field; this currently fails on the upstream auth-disabled error screen. Browser and server processes are cleaned up even on failure. The test also checks fail-fast startup without the credential encryption key. It does not use your `.env`, SQLite database, or browser profile.
 
 Coverage reports: `coverage/index.html` and `coverage/lcov.info`. Statements, branches, functions, and lines must each reach 80%. The upstream framework-composition entry is excluded; hand-written environment validation is included. New behavior modules must remain covered.
 

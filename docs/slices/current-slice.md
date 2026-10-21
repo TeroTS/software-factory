@@ -1,6 +1,6 @@
 # Current Slice
 
-Status: done
+Status: active
 
 ## Slice Goal
 
@@ -17,11 +17,9 @@ Status: done
 
 ## Stories Completed In This Slice
 
-- `US-02 Open Factory locally without signing in`
-
 ## Stories Remaining In This Slice
 
-- None.
+- `US-02 Open Factory locally without signing in`
 
 ## Contract Inputs
 
@@ -40,11 +38,14 @@ Status: done
 
 - Environment validation, `.env.example`, and existing Factory composition.
 - Startup integration test, README, specification, decisions, vocabulary, and repository guidance.
+- Browser-test follow-up: `playwright-core` is pinned directly, setup installs Chromium, and CI installs its Linux dependencies.
+- Blocked: the real browser and new regression test show the upstream auth-disabled error screen instead of Factory onboarding. The bundled UI refuses `auth: null`, despite the successful HTML/API checks. US-02 is reopened; no authentication or bundled-UI change has been made. Resolving this incompatibility requires a user decision before implementation.
 
 ## Tests Required
 
 - Unit tests accept configuration without an admin token while rejecting missing, blank, and malformed credential encryption keys without logging secrets.
 - Real end-to-end startup test omits the admin token, observes Factory HTML and an API response without credentials, confirms auth-disabled status, and verifies the loopback listener.
+- A fresh Chromium context must render the onboarding heading and an enabled "Create my first factory" button, without a sign-in redirect or password field.
 - Formatting, typecheck, coverage (no decrease), and build pass.
 
 ## Not Now
@@ -60,14 +61,4 @@ Status: done
 
 ## Completion Summary
 
-- Factory starts without an admin token; the local developer/admin receives Factory HTML and API responses without credentials. Authentication remains explicitly disabled and the server remains bound to `127.0.0.1`.
-- The credential encryption key remains required and validated without logging secrets. Existing `.env` files do not need a new key; unused admin-token/name entries may be removed.
-- The real startup test verifies auth-disabled status and rejects connections through available non-loopback IPv4 interfaces, using a temporary database and `.env` rather than developer state.
-- Specification, decisions, vocabulary, setup instructions, and agent guidance now consistently describe the user-approved single-user local-access scope and its exposure risks. No login adapter, authored endpoint, generated contract, or dependency was added.
-- `./scripts/verify` passes on Node 22.22.3: formatting, typecheck, all nine tests, coverage, and build. Runtime-module coverage remains 100% for statements, branches, functions, and lines. All nine tests also pass on Node 25.4.0.
-- No browser-driven UI interaction or hosted CI run was performed; the end-to-end check uses the real server's HTML and HTTP API.
-
 ## Next Slice Recommendation
-
-- `US-03 Factory data persists across restarts` is the next explicit story.
-- Keep US-04 shared LocalSandbox configuration and US-05 Copilot credential persistence in view; neither is part of this slice.

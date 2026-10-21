@@ -11,6 +11,7 @@ import {
 import { createServer } from "node:net";
 import { networkInterfaces, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { chromium } from "playwright-core";
 import { afterEach, beforeEach, expect, it } from "vitest";
 
 let directory: string;
@@ -134,4 +135,26 @@ it("local developer/admin opens the loopback-only Factory Server without an admi
   }
   expect(output).not.toContain(key);
   expect(output).not.toContain("FACTORY_CREDENTIAL_ENCRYPTION_KEY is not set");
+
+  const browser = await chromium.launch();
+  try {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto(url);
+    await expect
+      .poll(() => page.getByRole("heading", { level: 1 }).allTextContents(), {
+        timeout: 15_000,
+      })
+      .toEqual(["Set up your factory."]);
+    const start = page.getByRole("button", {
+      name: "Create my first factory",
+      exact: true,
+    });
+    expect(await start.isVisible()).toBe(true);
+    expect(await start.isEnabled()).toBe(true);
+    expect(new URL(page.url()).pathname).not.toBe("/signin");
+    expect(await page.locator('input[type="password"]').count()).toBe(0);
+  } finally {
+    await browser.close();
+  }
 }, 150_000);

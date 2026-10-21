@@ -13,4 +13,5 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: ./scripts/setup
+      - run: npm exec -- playwright-core install-deps chromium
       - run: ./scripts/verify
