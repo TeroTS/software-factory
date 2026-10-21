@@ -1,16 +1,14 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { Mastra } from "@mastra/core/mastra";
-import { getDatabasePath } from "@mastra/code-sdk/utils/project";
-import { DEFAULT_RETENTION } from "@mastra/code-sdk/utils/storage-maintenance";
 import {
   createFactorySecretEncryption,
   LocalFactorySandbox,
   MastraFactory,
 } from "@mastra/factory";
-import { LibSQLFactoryStorage } from "@mastra/libsql";
 import { createLocalIdentityProvider } from "./auth";
 import { validateEnvironment } from "./env";
+import { createFactoryStorage, vector } from "./storage";
 
 validateEnvironment(process.env);
 
@@ -25,11 +23,8 @@ export const factory = new MastraFactory({
       ),
     },
   }),
-  storage: new LibSQLFactoryStorage({
-    id: "mastra-code-storage",
-    url: `file:${getDatabasePath()}`,
-    retention: DEFAULT_RETENTION,
-  }),
+  storage: createFactoryStorage(process.env),
+  vector,
   sandbox: new LocalFactorySandbox({
     root:
       process.env.MASTRACODE_LOCAL_SANDBOX_ROOT?.trim() ||

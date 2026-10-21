@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { once } from "node:events";
 import {
   cpSync,
+  existsSync,
   mkdtempSync,
   rmSync,
   symlinkSync,
@@ -48,7 +49,30 @@ it("npm run dev fails fast without the credential encryption key", () => {
   expect(output).not.toContain(key);
 });
 
-it("local developer/admin opens the loopback-only Factory Server without an admin token or sign-in", async () => {
+it.each(["predev", "dev"])(
+  "%s fails fast when storage cannot be created",
+  (script) => {
+    const blocker = join(directory, "blocked");
+    writeFileSync(blocker, "keep existing data");
+    const result = spawnSync("npm", ["run", script], {
+      cwd: directory,
+      env: {
+        ...process.env,
+        FACTORY_CREDENTIAL_ENCRYPTION_KEY: key,
+        LIBSQL_URL: `file:${blocker}/factory.db`,
+      },
+      encoding: "utf8",
+      timeout: 15_000,
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.status).not.toBe(0);
+    const output = result.stdout + result.stderr;
+    expect(output).toContain("Cannot initialize Factory storage");
+    expect(output).not.toContain(key);
+  },
+);
+
+it("local developer/admin sees saved Factory data in the browser after restarting the loopback-only server", async () => {
   const reservation = createServer();
   reservation.listen(0, "127.0.0.1");
   await once(reservation, "listening");
@@ -64,9 +88,10 @@ it("local developer/admin opens the loopback-only Factory Server without an admi
   );
   const env: NodeJS.ProcessEnv = {
     ...process.env,
-    MASTRA_DB_PATH: join(directory, "factory.db"),
     MASTRA_TELEMETRY_DISABLED: "1",
   };
+  delete env.LIBSQL_URL;
+  delete env.MASTRA_DB_PATH;
   delete env.FACTORY_ADMIN_TOKEN;
   delete env.FACTORY_CREDENTIAL_ENCRYPTION_KEY;
   delete env.PORT;
@@ -121,7 +146,9 @@ it("local developer/admin opens the loopback-only Factory Server without an admi
       "FACTORY_CREDENTIAL_ENCRYPTION_KEY is not set",
     );
   }
+  expect(existsSync(join(directory, "data"))).toBe(false);
   await startServer();
+  expect(existsSync(join(directory, "data", "factory.db"))).toBe(true);
   const agents = await fetch(`${url}/api/agents`);
   expect(agents.status).toBe(200);
   expect(await agents.json()).toBeTypeOf("object");
@@ -181,14 +208,51 @@ it("local developer/admin opens the loopback-only Factory Server without an admi
     expect(new URL(page.url()).pathname).not.toBe("/signin");
     expect(await page.locator('input[type="password"]').count()).toBe(0);
     expect(await context.cookies()).toEqual([]);
+
+    const name = "Persistence check";
+    const created = await fetch(`${url}/web/factory/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    expect(created.status).toBe(201);
+    expect(await created.json()).toMatchObject({ project: { name } });
+    await page.goto(url);
+    await expect
+      .poll(
+        () =>
+          page
+            .getByRole("button", { name: "Select factory", exact: true })
+            .allTextContents(),
+        {
+          timeout: 15_000,
+        },
+      )
+      .toEqual([name]);
+    await context.close();
+
+    await stop?.();
+    await startServer();
+    const reopened = await fetch(`${url}/auth/me`);
+    expect(reopened.status).toBe(200);
+    expect(await reopened.json()).toEqual(identityStatus);
+    expect(reopened.headers.get("set-cookie")).toBeNull();
+    const saved = await fetch(`${url}/web/factory/projects`);
+    expect(saved.status).toBe(200);
+    expect(await saved.json()).toMatchObject({ projects: [{ name }] });
+    const freshContext = await browser.newContext();
+    const reopenedPage = await freshContext.newPage();
+    await reopenedPage.goto(url);
+    const selected = reopenedPage.getByRole("button", {
+      name: "Select factory",
+      exact: true,
+    });
+    await expect
+      .poll(() => selected.allTextContents(), { timeout: 15_000 })
+      .toEqual([name]);
+    expect(await selected.isVisible()).toBe(true);
+    expect(await freshContext.cookies()).toEqual([]);
   } finally {
     await browser.close();
   }
-
-  await stop?.();
-  await startServer();
-  const reopened = await fetch(`${url}/auth/me`);
-  expect(reopened.status).toBe(200);
-  expect(await reopened.json()).toEqual(identityStatus);
-  expect(reopened.headers.get("set-cookie")).toBeNull();
 }, 300_000);

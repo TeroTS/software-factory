@@ -4,7 +4,7 @@ Local, self-hosted Mastra Factory project, scaffolded with `create-factory@0.3.0
 
 ## Current delivery
 
-US-01 starts the Factory Server; US-02 opens usable Factory onboarding without signing in, verified in a real browser. Project-local persistence configuration, the sandbox check script, and GitHub Copilot connection verification remain separate stories in `SPEC.md`.
+US-01 starts the Factory Server; US-02 opens usable Factory onboarding without signing in; US-03 keeps Factory data in project-local SQLite across restarts. Browser tests verify onboarding and a saved Factory name after restart. The sandbox check script and GitHub Copilot connection verification remain later stories in `SPEC.md`.
 
 **Identity is assigned automatically, not verified.** The local identity provider treats every request as user `local-admin` (display name `Local developer/admin`) in organization `local`. Factory requires an identity and organization to load; no admin token, password, login session, or external identity service is used. Its `/auth/me` reports `authenticated: true`, but that is not proof of who called.
 
@@ -46,7 +46,9 @@ openssl rand -base64 32
 
 Never commit or share `.env`. Keep the encryption key stable: losing it makes encrypted credentials unreadable. `FACTORY_ADMIN_TOKEN` and `FACTORY_ADMIN_NAME` are not used; remove them from an existing `.env` if present.
 
-Optional defaults are commented in `.env.example`:
+`LIBSQL_URL=file:./data/factory.db` selects the local SQLite file. Relative filenames resolve against the Factory project root, not the shell or dev runner's working directory; an absolute local `file:` URL selects another location. Parent directories are created automatically. Remote URLs, in-memory storage, query parameters, and fragments are not supported. A location that cannot be created or written stops startup with a clear storage error.
+
+Other optional defaults are commented in `.env.example`:
 
 - `PORT=4111`
 - `MASTRACODE_PUBLIC_URL=http://localhost:4111`
@@ -75,7 +77,25 @@ curl --fail http://localhost:4111/auth/me
 
 Stop with Ctrl-C. No PostgreSQL, Redis, Docker, or Mastra platform provisioning is required.
 
-Storage still uses the upstream local SQLite path; US-03 will move configuration to `data/factory.db` and verify Factory-data persistence. Set `MASTRA_DB_PATH` in your shell to a dedicated absolute SQLite filename in an existing writable directory to keep this server separate from an existing Mastra Code database.
+## Persistence verification
+
+The default database is `data/factory.db`; its directory is created on first startup. The database and SQLite journal/WAL files are ignored by Git. Keep the credential encryption key paired with this database when backing up or moving it.
+
+Create a verification record once through the existing upstream API; no GitHub or model-provider connection is needed:
+
+```bash
+curl --fail http://localhost:4111/web/factory/projects \
+  -H 'Content-Type: application/json' \
+  --data '{"name":"Persistence check"}'
+```
+
+Open Factory and confirm the selected Factory is named `Persistence check`. Stop the server with Ctrl-C, run `npm run dev` again with the same database and encryption key, and confirm the same name is still shown. You can also inspect the saved records:
+
+```bash
+curl --fail http://localhost:4111/web/factory/projects
+```
+
+**Before upgrading an existing installation:** the default has changed from the upstream Mastra Code database to `data/factory.db`. No old database is moved, copied, or deleted. To keep an existing database, back it up and explicitly set `LIBSQL_URL` to its absolute local `file:` URL before starting; preserve its encryption key. `MASTRA_DB_PATH` no longer selects the Factory database.
 
 **Before reusing existing data:** organization scope remains `local`, but per-user settings/credentials previously stored under user `local` are separate from `local-admin` and will not be transferred automatically. Do not rename the fixed identity, delete data, or change scopes to work around missing settings. Back up the database and agree on any required transition first; no legacy-data migration is included.
 
@@ -112,9 +132,9 @@ For the startup test alone:
 npm test -- tests/startup.test.ts
 ```
 
-The startup test runs the real `npm run dev` without an admin token, using a temporary `.env`, SQLite file, and dynamically selected port. It checks HTML, agent and project API responses without credentials, the fixed user/organization from `/auth/me`, absence of session cookies, the logged loopback URL, and refusal of non-loopback IPv4 connections when interfaces are available. A fresh Chromium context must show Factory onboarding and its enabled start button without a sign-in redirect or password field. The server is restarted against the same temporary database to verify identity stability; Factory-data persistence remains US-03. Browser and server processes are cleaned up even on failure. The test also checks fail-fast startup without the credential encryption key. It does not use your `.env`, SQLite database, or browser profile.
+The startup test runs the real `npm run dev` without an admin token, using a temporary `.env`, SQLite file, and dynamically selected port. It checks HTML, agent and project API responses without credentials, the fixed user/organization from `/auth/me`, absence of session cookies, the logged loopback URL, and refusal of non-loopback IPv4 connections when interfaces are available. A fresh Chromium context must show Factory onboarding and its enabled start button without a sign-in redirect or password field. The test creates a named Factory record through the real upstream API, verifies its name in the UI, restarts against the same temporary `data/factory.db`, and verifies both the saved name in a fresh browser context and identity stability. Browser and server processes are cleaned up even on failure. The test also checks fail-fast startup without the credential encryption key and with a blocked storage path. Separate integration tests exercise real filesystem write failures, a `LibSQLFactoryStorage` write/close/reopen/read round trip, and Git ignore rules. It does not use your `.env`, SQLite database, or browser profile.
 
-Coverage reports: `coverage/index.html` and `coverage/lcov.info`. Statements, branches, functions, and lines must each reach 80%. The upstream framework-composition entry is excluded; hand-written environment validation and the local identity provider are included. New behavior modules must remain covered.
+Coverage reports: `coverage/index.html` and `coverage/lcov.info`. Statements, branches, functions, and lines must each reach 80%. The upstream framework-composition entry is excluded; hand-written environment validation, the local identity provider, and storage configuration are included. New behavior modules must remain covered.
 
 `.github/workflows/check.yml` uses `.nvmrc`, `./scripts/setup`, and `./scripts/verify`. No extra CI environment variables or services are required; no deployment pipeline is included. Agent workflow and layout guidance lives in `AGENTS.md`.
 
