@@ -1,0 +1,120 @@
+# Task: Set Up a Local, Self-Hosted Mastra Factory
+
+## Objective
+
+Create a working, locally hosted **Mastra Factory** project configured with:
+
+- **Authentication:** Mastra Simple Auth
+- **Storage:** Local SQLite
+- **Sandbox:** LocalSandbox
+
+The project must run entirely on the local machine without requiring cloud infrastructure.
+
+## Documentation
+
+Use the official documentation as the source of truth:
+
+1. **Getting started (self-hosted):** https://factory.mastra.ai/index.md
+2. **Simple Auth:** https://mastra.ai/docs/auth/simple-auth.md
+3. **Storage:** https://factory.mastra.ai/configure/storage.md
+4. **Sandboxes:** https://factory.mastra.ai/configure/sandboxes.md
+
+Read the relevant documentation before implementing each component. Follow the latest documented APIs and configuration patterns. Do not invent configuration options or use deprecated APIs.
+
+## Implementation Steps
+
+### 1. Initialize the Project
+
+- Create a new Mastra Factory project using the documented self-hosted setup.
+- Use TypeScript.
+- Install all required dependencies.
+- Configure scripts for local development.
+- Keep the project structure simple and maintainable.
+
+### 2. Configure Authentication
+
+- Implement Mastra Simple Auth following the official documentation.
+- Configure authentication using environment variables where applicable.
+- Do not hardcode credentials or secrets.
+- Ensure authentication is enabled and enforced for protected Factory endpoints.
+
+### 3. Configure Storage
+
+- Configure Factory to use local SQLite storage.
+- Store the database in a persistent local directory.
+- Ensure the database is initialized automatically when needed.
+- Ensure data persists across application restarts.
+- Exclude generated database files from Git.
+
+### 4. Configure Sandbox
+
+- Configure Factory to use `LocalSandbox`.
+- Ensure sandbox execution uses the local machine rather than a remote provider.
+- Configure the local workspace directory according to the documented API.
+- Ensure required directories exist and are writable.
+
+### 5. Configure Environment Variables
+
+- Create `.env.example` containing all required environment variables with safe example values.
+- Add `.env` and other sensitive or generated files to `.gitignore`.
+- Document how to configure the local environment.
+
+### 6. Verify the Implementation
+
+Run the project locally and verify that:
+
+- The application starts without configuration errors.
+- Factory is accessible locally.
+- Authentication works as expected.
+- SQLite storage initializes and persists data across restarts.
+- `LocalSandbox` is correctly configured and usable.
+
+Fix any errors discovered during verification.
+
+## Constraints
+
+- Use the **self-hosted** Mastra Factory option, not the managed cloud service.
+- Use local SQLite storage only.
+- Use `LocalSandbox`, not a cloud sandbox provider.
+- Avoid unnecessary dependencies and infrastructure.
+- Do not introduce Docker, PostgreSQL, Redis, or external services unless explicitly required by the official documentation.
+- Prefer documented defaults over custom implementations.
+- Do not implement additional features beyond the requested setup.
+
+## Deliverables
+
+1. Complete, runnable Mastra Factory project.
+2. Configured Simple Auth, SQLite storage, and LocalSandbox.
+3. `.env.example` and appropriate `.gitignore`.
+4. `README.md` containing:
+   - Prerequisites
+   - Installation instructions
+   - Environment configuration
+   - Commands to start the application
+   - Instructions to verify authentication, storage, and sandbox functionality
+
+## Acceptance Criteria
+
+The task is complete when:
+
+- [ ] The project installs successfully.
+- [ ] The self-hosted Factory starts locally.
+- [ ] Authentication is configured and enforced.
+- [ ] SQLite storage works and persists across restarts.
+- [ ] LocalSandbox is operational.
+- [ ] No cloud services are required.
+- [ ] Setup and execution steps are documented.
+
+## Execution Instructions
+
+Implement the project directly in the current workspace.
+
+Before making changes, inspect the existing files to avoid overwriting unrelated work.
+
+After implementation, run all available relevant build, type-check, and validation commands.
+
+**Do not stop after generating configuration files. Verify the application actually runs.**
+
+If a requirement cannot be implemented or verified, clearly document the blocker and any remaining steps. Do not claim unverified functionality is working.
+
+At completion, provide a concise summary of the files created or modified, commands executed, verification results, and any outstanding issues.
