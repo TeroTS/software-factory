@@ -6,6 +6,7 @@
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {
+    "postinstall": "node scripts/apply-copilot-compatibility.ts",
     "dev": "mastra factory dev --dir src/mastra",
     "check": "tsc --noEmit",
     "check:sandbox": "node --env-file-if-exists=.env scripts/check-sandbox.ts",

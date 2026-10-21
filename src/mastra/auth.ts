@@ -1,4 +1,7 @@
-import type { IMastraAuthProvider } from "@mastra/core/server";
+import type {
+  IMastraAuthProvider,
+  IOrganizationsProvider,
+} from "@mastra/core/server";
 
 const identity = Object.freeze({
   id: "local-admin",
@@ -9,7 +12,8 @@ const identity = Object.freeze({
 // Identity assignment only, not credential verification. Keep the server loopback-only.
 export function createLocalIdentityProvider(): IMastraAuthProvider<
   typeof identity
-> {
+> &
+  IOrganizationsProvider {
   return {
     name: "local-identity",
     async authenticateToken() {
@@ -23,6 +27,14 @@ export function createLocalIdentityProvider(): IMastraAuthProvider<
     },
     mapUserToResourceId() {
       return identity.id;
+    },
+    async ensureOrganization(userId) {
+      return userId === identity.id ? identity.organizationId : undefined;
+    },
+    async isOrganizationAdmin(organizationId, userId) {
+      return (
+        organizationId === identity.organizationId && userId === identity.id
+      );
     },
   };
 }

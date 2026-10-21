@@ -16,7 +16,7 @@ The single human actor who runs and opens the Factory Server locally, without si
 
 ### Local identity provider
 
-The Factory auth adapter that assigns every request the same non-secret `local-admin` identity, displayed as `Local developer/admin`, with the fixed organization ID `local` required by Factory, without credential verification or session storage. It satisfies Factory's identity contract but supplies no access protection: anything able to reach the server is treated as the local developer/admin.
+The Factory auth adapter that assigns every request the same non-secret `local-admin` identity, displayed as `Local developer/admin`, with the fixed organization ID `local` required by Factory, without credential verification or session storage. It satisfies Factory's identity and organizations-provider contracts, granting administration only to `local-admin` in existing organization `local`, without provisioning or credential migration. It supplies no access protection: anything able to reach the server is treated as the local developer/admin, including for organization-wide administration.
 
 ### Credential encryption key
 

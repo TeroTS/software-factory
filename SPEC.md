@@ -128,10 +128,13 @@ Visible outcome: Factory shows GitHub Copilot as connected, and the `github-copi
 
 Authoritative state transition: The Copilot credential is stored, encrypted with `FACTORY_CREDENTIAL_ENCRYPTION_KEY`, in the SQLite database.
 
-Slice boundary: No code or env changes. The README adds the connection steps and a warning to keep the credential encryption key paired with `data/`. Verified manually.
+Slice boundary: User-approved compatibility revision: add a reproducible, version-checked install-time patch for `@mastra/code-sdk@1.15.0` so its existing Copilot fallback catalog is available before sign-in. User-approved organization-admin revision: implement the installed upstream organizations-provider contract so only fixed user `local-admin` is administrator of existing organization `local`; reject all other user/organization IDs and do not provision or migrate data. User-approved catalog revision: use the selected personal/organization Copilot credential to fetch its live model catalog, reusing upstream token refresh and model filtering without server-global credential copying or cross-scope catalog sharing. Keep upstream HTTP schemas, bundled UI, credential checks, encrypted SQLite persistence, fixed identity IDs, and environment variables unchanged. Document personal and Factory-wide provider connection steps and keeping the encryption key paired with `data/`. Automated checks prove discovery and credential gating; actual GitHub sign-in and connection usability after restart remain manual acceptance checks.
 
 Acceptance criteria:
+- A clean install applies the compatibility patch idempotently and fails clearly on an unexpected SDK version or source shape.
+- Before sign-in, the real Factory Settings → Your models and Factory models pages offer enabled GitHub Copilot sign-in buttons, but models are not usable without credentials. The existing provider endpoint reports organization-admin capability only for the fixed local identity, and organization credential operations succeed without changing personal credentials.
 - The Copilot sign-in completes and the provider shows as connected.
+- Personal and Factory model pickers show the live Copilot models allowed for their selected credential scope, not only the discovery fallback. Missing credentials never borrow another scope's catalog; upstream network-failure fallback and token-refresh behavior remain intact.
 - After a Factory Server restart, the Copilot connection is still usable.
 - No missing-encryption warning appears in the Factory Server logs.
 

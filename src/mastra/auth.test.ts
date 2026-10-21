@@ -1,4 +1,7 @@
-import type { IMastraAuthProvider } from "@mastra/core/server";
+import {
+  isOrganizationsProvider,
+  type IMastraAuthProvider,
+} from "@mastra/core/server";
 import { describe, expect, it } from "vitest";
 import { createLocalIdentityProvider } from "./auth";
 
@@ -53,6 +56,45 @@ describe("local identity provider", () => {
       ),
     ).toBe(false);
   });
+
+  it("recognizes only the fixed user's existing organization without provisioning", async () => {
+    const provider = createLocalIdentityProvider();
+    if (!isOrganizationsProvider(provider)) {
+      throw new Error(
+        "Local identity must implement the upstream organization contract",
+      );
+    }
+    expect(await provider.ensureOrganization(identity.id)).toBe(
+      identity.organizationId,
+    );
+    expect(await provider.ensureOrganization(identity.id)).toBe(
+      identity.organizationId,
+    );
+    expect(await provider.ensureOrganization("another-user")).toBeUndefined();
+    expect(await provider.ensureOrganization("")).toBeUndefined();
+  });
+
+  it.each([
+    ["local", "local-admin", true],
+    ["another-organization", "local-admin", false],
+    ["local", "another-user", false],
+    ["another-organization", "another-user", false],
+    ["", "local-admin", false],
+    ["local", "", false],
+  ])(
+    "organization %s and user %s admin permission is %s",
+    async (organizationId, userId, allowed) => {
+      const provider = createLocalIdentityProvider();
+      if (!isOrganizationsProvider(provider)) {
+        throw new Error(
+          "Local identity must implement the upstream organization contract",
+        );
+      }
+      expect(await provider.isOrganizationAdmin(organizationId, userId)).toBe(
+        allowed,
+      );
+    },
+  );
 
   it("keeps identity and resource scoping stable across provider instances", async () => {
     const first: IMastraAuthProvider<typeof identity> =
