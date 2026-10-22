@@ -3,7 +3,7 @@
 Source: `DECISIONS.md`
 
 ## Summary
-- A local, self-hosted Mastra Factory project in this repo root (TypeScript, npm), used by one local developer/admin without signing in and bound strictly to `127.0.0.1`. A local identity provider assigns requests a fixed identity without verifying credentials. It uses local SQLite storage via `LibSQLFactoryStorage` under `data/`, `LocalSandbox` for agent execution, and GitHub Copilot as the model provider. No cloud services.
+- A local, self-hosted Mastra Factory project in this repo root (TypeScript, npm), used by one local developer/admin without signing in and bound strictly to `127.0.0.1`. A local identity provider assigns requests a fixed identity without verifying credentials. It uses local SQLite storage via `LibSQLFactoryStorage` under `data/`, `LocalSandbox` for agent execution, and GitHub Copilot as the model provider. No hosted Factory or database services.
 - User-approved scope revision: a local identity provider replaces the original Simple Auth requirement and the subsequent `auth: null` approach, which the bundled UI rejects. This supplies identity, not access protection; browser compatibility is verified by the real-server Chromium test.
 
 ## Goals
@@ -17,7 +17,7 @@ Source: `DECISIONS.md`
 
 ## Non-Goals
 - Credential verification, login UI, external identity services, Mastra platform auth, PostgreSQL, Turso, PlatformSandbox, E2B, Docker, Redis.
-- GitHub App setup, Linear/Slack/Jira/GitLab/incident.io integrations.
+- General GitHub App provisioning or access to existing project repositories; Linear/Slack/Jira/GitLab/incident.io integrations.
 - AWS Bedrock, GitHub Models (`GITHUB_TOKEN`), and other model providers.
 - A full end-to-end Factory session (issue → plan → PR).
 - RBAC, multiple users, LAN/tunnel exposure, production deployment.
@@ -143,26 +143,30 @@ Acceptance criteria:
 Deferred follow-ups:
 - US-06.
 
-### US-06: Run a full Factory session in LocalSandbox (deferred)
+### US-06: Run a checkout-and-command smoke test in LocalSandbox
 Primary actor: Coding agent session
 
-Trigger: A work item is started on a connected GitHub repository.
+Trigger: The local developer/admin manually starts a work item on the connected disposable private GitHub repository.
 
-Happy-path action: Factory checks out the repository into a LocalSandbox session directory and the agent runs commands there using GitHub Copilot.
+Happy-path action: Factory checks out the repository into a LocalSandbox session directory, and the agent runs `git status` there using the existing Factory-scoped GitHub Copilot connection.
 
-Visible outcome: The session directory contains the repository checkout, and the session shows command output.
+Visible outcome: The session directory contains the repository checkout and the session displays actual command output, without code changes, commits, pushes, or pull requests from the smoke-test run.
 
-Authoritative state transition: A session sandbox goes from not started to started, with the checkout in `<sandbox root>/<sessionId>`.
+Authoritative state transition: A session sandbox goes from not started to started with the checkout and command execution recorded for that coding agent session.
 
-Slice boundary: This needs a GitHub App configured with `GITHUB_APP_*` variables, which is currently a non-goal. Documented as a manual verification step only.
+Slice boundary: Reuse the installed upstream GitHub App integration, connection UI, work-item flow, and LocalSandbox. GitHub App configuration is optional for ordinary startup but all-or-nothing when supplied, including a stable OAuth state secret. The user creates the App and enters secrets locally; the assistant implements wiring and tests without receiving secrets. Use one personal-account App installed only on `TeroTS/factory-smoke-test` (App slug `factory-example`). Keep loopback-only binding, existing identity IDs, encrypted SQLite, and Copilot credential scopes unchanged. Use manual start and upstream polling; no webhook delivery, relay, tunnel, custom API/UI, additional model provider, or classic PAT is required.
 
 Acceptance criteria:
-- The README documents the manual steps and their prerequisites.
-- Not performed in this delivery.
+- Existing startup and Copilot functionality still work without GitHub App configuration.
+- Partial/invalid App configuration fails fast with variable-specific errors that never print secret values.
+- With complete valid configuration, the real local server reports the existing GitHub integration enabled, keeps its browser callback on loopback, and validates signed OAuth state. No repository access or paid provider calls are needed for automated startup checks.
+- The user installs/connects only the selected disposable repository and manually starts the work item; the real checkout and Copilot `git status` output are observed in the session.
+- The smoke test does not alter repository code, create commits, push, or open a pull request. An initial README commit created while provisioning the repository is allowed.
+- Denied repository access, clone failures, or model failures do not count as success, and existing state/sandboxes are not silently deleted or re-scoped.
+- Setup instructions are kept in focused GitHub setup documentation, not delivery tracking in README or AGENTS. Automated local checks preserve coverage; actual GitHub authorization and Copilot execution require human-assisted acceptance.
 
 Deferred follow-ups:
-- None.
+- Code changes, commits, pushes, pull requests, webhook delivery, and broader repository access are outside this delivery; no additional story is defined.
 
 ## Open Questions
-- US-06 is deferred until a self-managed GitHub App is set up later.
-- Webhook delivery to the local server for that App is undecided: a smee.io relay, a tunnel, or reconciliation polling only.
+- Live GitHub App permissions and the human-assisted checkout/command path must be verified before US-06 is marked complete.

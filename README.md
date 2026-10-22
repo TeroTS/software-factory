@@ -34,6 +34,7 @@ See [`.env.example`](.env.example) for optional port, public URL, database, and 
 - SQLite defaults to `data/factory.db`; `LIBSQL_URL` accepts another local `file:` URL. Relative paths resolve against this repository, and missing parent directories are created.
 - Keep the encryption key paired with the database when backing up or moving it. Lost/replaced keys make stored credentials unreadable. Existing databases and legacy identity scopes are not migrated automatically.
 - To verify persistence, restart Factory with the same database/key and confirm your Factory and provider connections remain available.
+- Optional GitHub repository access: [GitHub setup](docs/github-setup.md).
 
 ## Verify
 

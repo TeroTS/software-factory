@@ -1,13 +1,18 @@
 import { Mastra } from "@mastra/core/mastra";
 import { createFactorySecretEncryption, MastraFactory } from "@mastra/factory";
+import { GithubIntegration } from "@mastra/factory/integrations/github/integration";
 import { createLocalIdentityProvider } from "./auth";
 import { validateEnvironment } from "./env";
+import { readGitHubConfiguration } from "./github/config";
 import { createSandbox } from "./sandbox";
 import { createFactoryStorage, vector } from "./storage";
 
 validateEnvironment(process.env);
+const github = readGitHubConfiguration(process.env);
 
 export const factory = new MastraFactory({
+  integrations: github ? [new GithubIntegration(github.integration)] : [],
+  stateSecret: github?.stateSecret,
   auth: createLocalIdentityProvider(),
   secretEncryption: createFactorySecretEncryption({
     primary: {

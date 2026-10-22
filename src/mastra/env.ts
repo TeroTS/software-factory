@@ -1,3 +1,5 @@
+import { readGitHubConfiguration } from "./github/config.ts";
+
 export function validateEnvironment(env: NodeJS.ProcessEnv): void {
   const encoded = env.FACTORY_CREDENTIAL_ENCRYPTION_KEY?.trim();
   if (!encoded) {
@@ -9,4 +11,5 @@ export function validateEnvironment(env: NodeJS.ProcessEnv): void {
       "FACTORY_CREDENTIAL_ENCRYPTION_KEY must be a base64-encoded 32-byte key",
     );
   }
+  readGitHubConfiguration(env);
 }

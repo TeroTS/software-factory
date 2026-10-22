@@ -5,6 +5,7 @@ import {
   cpSync,
   existsSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -17,6 +18,7 @@ import { ModelCredentialsStorage } from "@mastra/factory/storage/domains/credent
 import { chromium } from "playwright-core";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { z } from "zod";
+import { createStateSigner } from "@mastra/factory/state-signing";
 import { createFactoryStorage } from "../../src/mastra/storage";
 import { createCopilotFixture } from "./copilot/copilot-fixture";
 
@@ -82,7 +84,26 @@ it.each(["predev", "dev"])(
   },
 );
 
-it("local developer/admin discovers scoped Copilot models and saved Factory data after restarting the loopback-only server", async () => {
+it("predev rejects partial GitHub configuration before creating storage", () => {
+  const result = spawnSync("npm", ["run", "predev"], {
+    cwd: directory,
+    env: {
+      PATH: process.env.PATH,
+      HOME: process.env.HOME,
+      FACTORY_CREDENTIAL_ENCRYPTION_KEY: key,
+      GITHUB_APP_SLUG: "fixture-app",
+    },
+    encoding: "utf8",
+    timeout: 15_000,
+  });
+  expect(result.error).toBeUndefined();
+  expect(result.status).not.toBe(0);
+  expect(result.stdout + result.stderr).toContain("GITHUB_APP_ID is required");
+  expect(result.stdout + result.stderr).not.toContain(key);
+  expect(existsSync(join(directory, "data"))).toBe(false);
+});
+
+it("local developer/admin sees persisted data, scoped models, and optional GitHub connection after loopback server restarts", async () => {
   const reservation = createServer();
   reservation.listen(0, "127.0.0.1");
   await once(reservation, "listening");
@@ -109,7 +130,17 @@ it("local developer/admin discovers scoped Copilot models and saved Factory data
   delete env.FACTORY_ADMIN_TOKEN;
   delete env.FACTORY_CREDENTIAL_ENCRYPTION_KEY;
   delete env.PORT;
+  for (const name of [
+    "GITHUB_APP_ID",
+    "GITHUB_APP_PRIVATE_KEY",
+    "GITHUB_APP_CLIENT_ID",
+    "GITHUB_APP_CLIENT_SECRET",
+    "GITHUB_APP_SLUG",
+    "FACTORY_STATE_SECRET",
+  ])
+    delete env[name];
   const url = `http://localhost:${port}`;
+  env.MASTRACODE_PUBLIC_URL = url;
   async function startServer(): Promise<void> {
     const child = spawn("npm", ["run", "dev"], {
       cwd: directory,
@@ -430,6 +461,75 @@ it("local developer/admin discovers scoped Copilot models and saved Factory data
       .toEqual([name]);
     expect(await selected.isVisible()).toBe(true);
     expect(await freshContext.cookies()).toEqual([]);
+    await freshContext.close();
+
+    const stateSecret = randomBytes(32).toString("base64");
+    Object.assign(env, {
+      GITHUB_APP_ID: "123456",
+      GITHUB_APP_PRIVATE_KEY: readFileSync(
+        join(directory, "copilot-fixture-key.pem"),
+        "utf8",
+      ),
+      GITHUB_APP_CLIENT_ID: "Iv1.fixture-client",
+      GITHUB_APP_CLIENT_SECRET: "fixture-only-client-secret",
+      GITHUB_APP_SLUG: "fixture-app",
+      FACTORY_STATE_SECRET: stateSecret,
+    });
+    await stop?.();
+    await startServer();
+    const githubStatus = await fetch(`${url}/web/github/status`);
+    expect(githubStatus.status).toBe(200);
+    const githubBody = await githubStatus.text();
+    expect(JSON.parse(githubBody)).toMatchObject({
+      enabled: true,
+      connected: false,
+      reason: "not_connected",
+      diagnostics: {
+        githubAppConfigured: true,
+        factoryAuthEnabled: true,
+        appDbConfigured: true,
+        stateSecretConfigured: true,
+        sandboxEnabled: true,
+        missingGithubAppEnvVars: [],
+      },
+    });
+    expect(githubBody).not.toContain(env.GITHUB_APP_CLIENT_SECRET);
+    expect(githubBody).not.toContain(env.GITHUB_APP_PRIVATE_KEY);
+    expect(githubBody).not.toContain(stateSecret);
+    const connection = await fetch(`${url}/auth/github/connect`, {
+      redirect: "manual",
+    });
+    expect(connection.status).toBe(302);
+    const authorization = new URL(connection.headers.get("location")!);
+    expect(authorization.origin).toBe("https://github.com");
+    expect(authorization.pathname).toBe("/login/oauth/authorize");
+    expect(authorization.searchParams.get("client_id")).toBe(
+      "Iv1.fixture-client",
+    );
+    expect(authorization.searchParams.get("redirect_uri")).toBe(
+      `${url}/auth/github/callback`,
+    );
+    expect(
+      createStateSigner(stateSecret).verify(
+        authorization.searchParams.get("state") ?? undefined,
+      ),
+    ).toMatchObject({
+      orgId: "local",
+      userId: "local-admin",
+    });
+    const rejected = await fetch(
+      `${url}/auth/github/callback?state=invalid&code=fixture-only`,
+      { redirect: "manual" },
+    );
+    expect(rejected.status).toBe(302);
+    expect(rejected.headers.get("location")).toBe("/?github=error");
+    const webhook = await fetch(`${url}/web/github/webhook`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    expect(webhook.status).toBe(401);
+    expect(await webhook.json()).toMatchObject({ error: "unauthorized" });
   } finally {
     await browser.close();
   }
