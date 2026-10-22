@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { validateEnvironment } from "./env";
+import { validateEnvironment } from "../../src/mastra/env";
 
 const valid = {
   FACTORY_CREDENTIAL_ENCRYPTION_KEY: randomBytes(32).toString("base64"),

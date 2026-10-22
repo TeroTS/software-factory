@@ -9,7 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { applyFactoryCopilotCompatibility } from "./copilot-compatibility";
+import { applyFactoryCopilotCompatibility } from "../../../src/mastra/copilot/copilot-compatibility";
 
 let directory: string;
 let configFile: string;

@@ -3,7 +3,7 @@ import {
   type IMastraAuthProvider,
 } from "@mastra/core/server";
 import { describe, expect, it } from "vitest";
-import { createLocalIdentityProvider } from "./auth";
+import { createLocalIdentityProvider } from "../../src/mastra/auth";
 
 const identity = {
   id: "local-admin",

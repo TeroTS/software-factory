@@ -4,11 +4,11 @@ import { ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import {
   applyCopilotCompatibility,
   applyFactoryCopilotCompatibility,
-} from "../src/mastra/copilot-compatibility.ts";
+} from "../src/mastra/copilot/copilot-compatibility.ts";
 
 const catalog = transpileModule(
   readFileSync(
-    new URL("../src/mastra/copilot-catalog.ts", import.meta.url),
+    new URL("../src/mastra/copilot/copilot-catalog.ts", import.meta.url),
     "utf8",
   ),
   {

@@ -20,7 +20,9 @@ npm exec -- playwright-core install-deps chromium
 Verification runs formatting → typecheck → tests with coverage → build. No separate linter exists. Useful targets:
 
 ```bash
-npm test -- tests/startup.test.ts
+npm run test:unit
+npm run test:integration
+npm test -- tests/integration/startup.test.ts
 npm run test:coverage
 npm run postinstall     # reapply authored Copilot compatibility changes
 ```
@@ -38,14 +40,14 @@ Build needs network; peer warnings are not failures. Report stalls and ask; do n
 
 - Keep the literal `new Mastra(...)` and `prepare()` → constructor → `finalize()` sequence in `src/mastra/index.ts`.
 - Never hand-edit or commit `.mastra/`, `src/mastra/public/`, dependencies, databases/journals, or coverage output. Build regenerates the first two.
-- Do not skip npm lifecycle scripts. Copilot patches live in `src/mastra/copilot-compatibility.ts`; installation compiles `copilot-catalog.ts` into installed Factory. Keep patches idempotent and fail on dependency version/source drift. Review/remove them before upgrades; never patch installed artifacts manually.
+- Do not skip npm lifecycle scripts. Copilot patches live in `src/mastra/copilot/copilot-compatibility.ts`; installation compiles `copilot-catalog.ts` into installed Factory. Keep patches idempotent and fail on dependency version/source drift. Review/remove them before upgrades; never patch installed artifacts manually.
 - Preserve selected credential scope and session owner. Never copy personal credentials into organization/global storage, borrow another scope's catalog, or share cross-scope caches. Retain upstream token refresh, model filtering, and fallback behavior. Do not silently change saved defaults.
 
 ## Testing
 
-- Changed behavior requires automated tests. Module tests are beside source; real integration/browser tests are in `tests/`. Use real SQLite, filesystems, LocalSandbox, and runnable server boundaries. Isolate temporary databases, ports, sandbox roots, browser contexts, and cleanup from developer state.
+- Changed behavior requires automated tests. Pure logic tests belong in `tests/unit/`; filesystem, SQLite, sandbox, and server/browser tests belong in `tests/integration/`. Use real SQLite, filesystems, LocalSandbox, and runnable server boundaries. Isolate temporary databases, ports, sandbox roots, browser contexts, and cleanup from developer state.
 - Tests need macOS/Linux, Git, OpenSSL, and Chromium—not developer credentials or `.env`.
-- Copilot has no local emulator: only remote HTTP/refresh calls may be doubled. Keep real encrypted SQLite/upstream credential resolution. The HTTPS fixture in `tests/copilot-fixture.ts` uses a temporary trusted certificate; never disable TLS verification or contact GitHub in automated tests.
+- Copilot has no local emulator: only remote HTTP/refresh calls may be doubled. Keep real encrypted SQLite/upstream credential resolution. The HTTPS fixture in `tests/integration/copilot/copilot-fixture.ts` uses a temporary trusted certificate; never disable TLS verification or contact GitHub in automated tests.
 - CI executes V8 coverage through `./scripts/verify`. Maintain at least 80% statements, branches, functions, and lines without decreasing coverage. Never exclude business logic; test composition through real startup. Reports: `coverage/index.html`, `coverage/lcov.info`.
 
 ## Change Rules

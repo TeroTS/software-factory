@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { expect, it } from "vitest";
-import { resolveSandboxRoot } from "./sandbox";
+import { resolveSandboxRoot } from "../../src/mastra/sandbox";
 
 it("defaults the sandbox root to the local developer/admin home", () => {
   expect(resolveSandboxRoot({})).toBe(

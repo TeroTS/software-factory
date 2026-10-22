@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
-import { resolveDatabasePath, vector } from "./storage";
+import { resolveDatabasePath, vector } from "../../src/mastra/storage";
 
 const root = resolve("/factory-project");
 

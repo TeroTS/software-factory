@@ -13,7 +13,7 @@ import { FactoryProjectsStorage } from "@mastra/factory";
 import type { FactoryProject } from "@mastra/factory";
 import type { LibSQLFactoryStorage } from "@mastra/libsql";
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { createFactoryStorage } from "../src/mastra/storage";
+import { createFactoryStorage } from "../../src/mastra/storage";
 
 let directory: string;
 const stores: LibSQLFactoryStorage[] = [];

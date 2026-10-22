@@ -15,7 +15,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { LocalSandbox } from "@mastra/core/workspace";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { createSandbox } from "../src/mastra/sandbox";
+import { createSandbox } from "../../src/mastra/sandbox";
 
 let directory: string;
 

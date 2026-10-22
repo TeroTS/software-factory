@@ -8,8 +8,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { withTenantCopilotModels } from "./copilot-catalog";
-import { createFactoryStorage } from "./storage";
+import { withTenantCopilotModels } from "../../../src/mastra/copilot/copilot-catalog";
+import { createFactoryStorage } from "../../../src/mastra/storage";
 
 const user = { orgId: "local", userId: "local-admin" };
 const org = { orgId: "local" };

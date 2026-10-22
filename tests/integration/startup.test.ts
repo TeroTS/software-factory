@@ -17,8 +17,8 @@ import { ModelCredentialsStorage } from "@mastra/factory/storage/domains/credent
 import { chromium } from "playwright-core";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { z } from "zod";
-import { createFactoryStorage } from "../src/mastra/storage";
-import { createCopilotFixture } from "./copilot-fixture";
+import { createFactoryStorage } from "../../src/mastra/storage";
+import { createCopilotFixture } from "./copilot/copilot-fixture";
 
 let directory: string;
 let stop: (() => Promise<void>) | undefined;
