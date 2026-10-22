@@ -19,7 +19,7 @@ Source: `DECISIONS.md`
 - Credential verification, login UI, external identity services, Mastra platform auth, PostgreSQL, Turso, PlatformSandbox, E2B, Docker, Redis.
 - General GitHub App provisioning or access to existing project repositories; Linear/Slack/Jira/GitLab/incident.io integrations.
 - AWS Bedrock, GitHub Models (`GITHUB_TOKEN`), and other model providers.
-- A full end-to-end Factory session (issue → plan → PR).
+- General end-to-end delivery beyond US-07's single disposable-repository pipeline test; automatic merge.
 - RBAC, multiple users, LAN/tunnel exposure, production deployment.
 - CI pipeline.
 
@@ -144,6 +144,8 @@ Deferred follow-ups:
 - US-06.
 
 ### US-06: Run a checkout-and-command smoke test in LocalSandbox
+Status: done — the manual session recorded actual `git status` output on `factory/item-0682d782-7ac8-4783-8fc7-95667dd27ed3`; local inspection found a clean checkout at initial commit `d460b83`. Subsequent live GitHub checks confirmed the App installation selects only `TeroTS/factory-smoke-test`, `main` remains at `d460b83b2282bac0fa6eb32a9337956b70733dde`, and no pull requests exist. The user also confirmed live Sol execution after the routing fix in `5cccfc6`. Automated checks passed with 120 tests, 100% coverage, formatting, typecheck, and build; this did not test automated pipeline progression.
+
 Primary actor: Coding agent session
 
 Trigger: The local developer/admin manually starts a work item on the connected disposable private GitHub repository.
@@ -166,7 +168,37 @@ Acceptance criteria:
 - Setup instructions are kept in focused GitHub setup documentation, not delivery tracking in README or AGENTS. Automated local checks preserve coverage; actual GitHub authorization and Copilot execution require human-assisted acceptance.
 
 Deferred follow-ups:
-- Code changes, commits, pushes, pull requests, webhook delivery, and broader repository access are outside this delivery; no additional story is defined.
+- Code changes, commits, pushes, and pull requests remain outside US-06; US-07 separately authorizes one limited pipeline test. Webhook delivery and broader repository access remain out of scope.
+
+### US-07: Run one automated file-to-PR pipeline test
+Status: active — the first live attempt automatically started Planning but failed after five attempts on the Responses adapter's `summaryParts` exception. The user-approved install-time fix now correlates renamed reasoning items by output index; 143 tests, 100% coverage, formatting, typecheck, and build passed. Retrying the same decision/session completed its stream without that exception, then stopped on a planner-generated assertion that the requested content is 29 bytes rather than the actual 30. The agent's heading-error summary was disproved by the command record and read-only checks. The card remains in Planning; the local untracked plan artifact is retained, HEAD remains at the initial commit, GitHub still has only unchanged `main` and no PRs, and automation settings/normal polling were restored. No downstream pipeline success is claimed.
+
+Primary actor: Local developer/admin
+
+Trigger: The developer/admin admits one test work item into the connected disposable repository's workflow after verifying permissions and enabling only the required upstream automation settings.
+
+Happy-path action: Factory's configured rules start and advance the coding agent sessions through planning, implementation, validation, independent self-review, and pull request creation without manual session starts or chat follow-ups.
+
+Visible outcome: One unmerged pull request adds only `PIPELINE_TEST.md` containing exactly `Factory pipeline test passed.` followed by a newline; recorded commands and workflow activity prove the automated work and review occurred.
+
+Authoritative state transition: One accepted work item advances through automated run bindings to a reviewed branch and linked open pull request. The default branch remains unchanged; an open PR is not Done.
+
+Slice boundary: Reuse the installed upstream UI, contracts, rules, polling, Copilot, encrypted SQLite, and LocalSandbox. Use only `TeroTS/factory-smoke-test`, one work item, and one PR. The developer/admin approves Contents and Pull requests read/write permissions on the existing App installation without broadening repository selection. Upstream non-bug acceptance remains required: if intake classifies this documentation task as non-bug, the human moves it into Planning once; this is a launch/acceptance gate, not a successful fully unattended intake test. Do not misclassify the task or patch away the gate. No new API, UI, provider, PAT, or orchestration engine is planned.
+
+Acceptance criteria:
+- Back up existing local storage before changing Factory state; preserve the database/key pair, identity, credentials, defaults, existing cards, and sessions.
+- Verify the installation still selects only the disposable repository, effective write permissions are approved, and the default-branch SHA/PR baseline is recorded before triggering work.
+- Inspect existing cards and automation policy before enabling factory-wide settings. Do not unintentionally run existing work; if isolation cannot be achieved with existing controls, stop for a decision rather than moving/deleting existing cards.
+- Record the original settings. Enable auto-start, auto-approve plans, and self-review only for the test's isolated Factory; leave publish-review-checks off unless separately approved. Restore the changed settings after success, failure, or an unexpected retry loop.
+- Trigger exactly one work item; after any required human acceptance into Planning, use no manual Start session or chat instructions to advance it.
+- Actual tool records prove checkout, the exact file contents and single-file diff, successful validation, commit, push, independent self-review verdict for the pushed head, and creation of the one linked PR.
+- The PR is left open and unmerged, with no auto-merge enabled; `main` remains at its recorded SHA. Subsequent polling produces no duplicate work items, sessions, commits, or PRs.
+- Permission errors, clone/model/validation/review failures, and approval gates are visible, retain evidence, and do not count as success. Agent summaries or board movement alone are insufficient.
+- Live GitHub/Copilot execution is a human-assisted acceptance check, not an automated test using developer credentials. Any authored runtime change discovered to be necessary requires regression tests and existing coverage standards; stop before changing contracts or bypassing upstream policy.
+
+Deferred follow-ups:
+- A separate failing-validation/retry scenario after the first successful run; do not add a second test card in this slice.
+- Fully unattended non-bug intake, merge/deployment, broader repository access, webhooks/tunnels, and production readiness.
 
 ## Open Questions
-- Live GitHub App permissions and the human-assisted checkout/command path must be verified before US-06 is marked complete.
+- US-07 is blocked on human approval of the App's Contents and Pull requests write permissions. Verify whether existing controls can isolate the test without affecting the existing manual smoke-test card.

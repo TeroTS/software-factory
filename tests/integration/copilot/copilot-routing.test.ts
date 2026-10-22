@@ -9,7 +9,10 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { applyCopilotCompatibility } from "../../../src/mastra/copilot/copilot-compatibility";
+import {
+  applyCopilotCompatibility,
+  applyOpenAICopilotCompatibility,
+} from "../../../src/mastra/copilot/copilot-compatibility";
 import { createFactoryStorage } from "../../../src/mastra/storage";
 
 const user = { orgId: "local", userId: "local-admin" };
@@ -27,6 +30,7 @@ let endpoints: Record<"user" | "org", string[]>;
 let unavailable: boolean;
 let inferenceStatus: number;
 let toolCall: boolean;
+let reasoningEvents: unknown[];
 
 beforeEach(async () => {
   directory = mkdtempSync(join(tmpdir(), "factory-copilot-routing-"));
@@ -41,7 +45,10 @@ beforeEach(async () => {
     );
   }
   symlinkSync(join(installed, "dist/auth"), join(sdk, "dist/auth"), "dir");
-  symlinkSync(resolve("node_modules"), join(sdk, "node_modules"), "dir");
+  symlinkSync(resolve("node_modules"), join(directory, "node_modules"), "dir");
+  const openai = join(sdk, "node_modules/@ai-sdk/openai");
+  cpSync(resolve("node_modules/@ai-sdk/openai"), openai, { recursive: true });
+  applyOpenAICopilotCompatibility(openai);
   applyCopilotCompatibility(sdk);
   provider = await import(
     pathToFileURL(join(sdk, "dist/providers/github-copilot.js")).href
@@ -75,6 +82,7 @@ beforeEach(async () => {
   unavailable = false;
   inferenceStatus = 200;
   toolCall = false;
+  reasoningEvents = [];
   // Only remote HTTP is doubled; SDK adapters, scoped encrypted SQLite, and OAuth fetch are real.
   vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
     const request = new Request(url, init);
@@ -155,6 +163,7 @@ beforeEach(async () => {
           type: "response.created",
           response: { id: "resp_fixture", created_at: 1, model: body.model },
         },
+        ...reasoningEvents,
         {
           type: "response.output_item.added",
           output_index: 0,
@@ -299,6 +308,102 @@ it.each(["user", "factory"] as const)(
     );
   },
 );
+
+it.each(
+  ["rs_start", "rs_final"].flatMap((doneId) =>
+    [false, true].map((hasSummary) => ({ doneId, hasSummary })),
+  ),
+)(
+  "finishes reasoning with completed ID $doneId and summary $hasSummary, preserving stream identity and final metadata",
+  async ({ doneId, hasSummary }) => {
+    reasoningEvents = [
+      {
+        type: "response.output_item.added",
+        output_index: 0,
+        item: {
+          type: "reasoning",
+          id: "rs_start",
+          encrypted_content: "fixture-initial-encrypted",
+        },
+      },
+      ...(hasSummary
+        ? [
+            {
+              type: "response.reasoning_summary_text.delta",
+              item_id: "rs_start",
+              output_index: 0,
+              summary_index: 0,
+              delta: "fixture summary",
+            },
+          ]
+        : []),
+      {
+        type: "response.output_item.done",
+        output_index: 0,
+        item: {
+          type: "reasoning",
+          id: doneId,
+          encrypted_content: "fixture-final-encrypted",
+        },
+      },
+    ];
+    const { stream } = await (await modelFor()).doStream({ prompt });
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    expect(chunks).not.toContainEqual(
+      expect.objectContaining({ type: "error" }),
+    );
+    expect(chunks).toContainEqual(
+      expect.objectContaining({ type: "reasoning-start", id: "rs_start:0" }),
+    );
+    expect(chunks.filter((chunk) => chunk.type === "reasoning-delta")).toEqual(
+      hasSummary
+        ? [
+            expect.objectContaining({
+              type: "reasoning-delta",
+              id: "rs_start:0",
+              delta: "fixture summary",
+            }),
+          ]
+        : [],
+    );
+    expect(chunks).toContainEqual({
+      type: "reasoning-end",
+      id: "rs_start:0",
+      providerMetadata: {
+        openai: {
+          itemId: doneId,
+          reasoningEncryptedContent: "fixture-final-encrypted",
+        },
+      },
+    });
+    expect(chunks).toContainEqual(
+      expect.objectContaining({ type: "text-delta", delta: "fixture result" }),
+    );
+    expect(chunks).toContainEqual(expect.objectContaining({ type: "finish" }));
+  },
+);
+
+it("rejects a reasoning completion without a matching start instead of pairing a different output index", async () => {
+  reasoningEvents = [
+    {
+      type: "response.output_item.added",
+      output_index: 0,
+      item: { type: "reasoning", id: "rs_start" },
+    },
+    {
+      type: "response.output_item.done",
+      output_index: 1,
+      item: { type: "reasoning", id: "rs_unmatched" },
+    },
+  ];
+  const { stream } = await (await modelFor()).doStream({ prompt });
+  await expect(async () => {
+    for await (const chunk of stream) {
+      if (chunk.type === "error") throw chunk.error;
+    }
+  }).rejects.toThrow("Responses reasoning completion has no matching start");
+});
 
 it("preserves function-tool arguments, tool-call output, and follow-up input on Responses", async () => {
   toolCall = true;

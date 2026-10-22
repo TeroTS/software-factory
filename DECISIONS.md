@@ -1,10 +1,23 @@
 # Local Self-Hosted Mastra Factory Decisions
 
-Status: Accepted v2 — US-06 checkout-and-command scope.
+Status: Accepted v3 — US-06 smoke test plus one user-approved US-07 automated pipeline test.
 
 ## Problem Summary
 
 Extend the existing local Factory project to demonstrate a real repository checkout and Copilot command execution through LocalSandbox. `SPEC.md` remains the behavior backlog; this document records the agreed scope and constraints, not delivery progress.
+
+## US-07 Scope Revision
+
+The user explicitly approved proceeding with one isolated automated pipeline test after the manual smoke test. This revision supersedes the US-06-only exclusions below only for US-07; it does not retroactively expand the earlier smoke test.
+
+- Use only `TeroTS/factory-smoke-test`, one new work item, one branch, and one unmerged pull request adding `PIPELINE_TEST.md` with exactly `Factory pipeline test passed.` and a final newline.
+- Reuse existing upstream auto-start, auto-approve plans, and independent self-review. No new orchestration engine, API, UI, or credential scope is authorized.
+- Preserve upstream's human acceptance gate for non-bug work. A human may need to move this documentation task into Planning once; after acceptance, the test must progress without manual session starts or chat follow-ups. Do not claim fully unattended issue intake from this narrower test.
+- The human approves Contents and Pull requests read/write permissions on the existing App installation, keeping repository selection restricted to the disposable repository. Existing Issues write permission is sufficient for issue interaction. No Checks write permission is requested; leave publishing review test checks off. The installed workspace supports an installation-token fallback for GitHub CLI operations, so do not introduce a PAT preemptively.
+- Inspect and isolate the affected Factory before changing its factory-wide automation settings; preserve existing work and saved model defaults. Back up local storage first, record original settings, and restore changed automation settings afterward or on failure.
+- A test issue and agent-authored branch/commit/push/PR are allowed only for this task. No merge, auto-merge, default-branch change, destructive cleanup, extra repository access, or automatic App/repository provisioning is authorized.
+- Prove the exact diff, validation commands, independent review verdict, linked PR, unchanged default branch, and lack of duplicate dispatch during subsequent polling. Failures must remain visible, not be repaired by manually performing the pipeline steps.
+- A separate failing-validation scenario is deferred until the first run succeeds. Live provider calls are acceptance checks, never automated tests using developer credentials.
 
 ## Goals and Success Criteria
 

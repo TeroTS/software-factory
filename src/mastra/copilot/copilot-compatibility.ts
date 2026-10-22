@@ -71,6 +71,46 @@ export function applyCopilotCompatibility(sdkDirectory: string): void {
   writeFileSync(filename, source);
 }
 
+export function applyOpenAICopilotCompatibility(openaiDirectory: string): void {
+  const { version } = JSON.parse(
+    readFileSync(join(openaiDirectory, "package.json"), "utf8"),
+  );
+  if (version !== "3.0.131") {
+    throw new Error(
+      "Copilot reasoning patch requires @ai-sdk/openai@3.0.131; review it before upgrading.",
+    );
+  }
+  // shortcut: Copilot renames completed reasoning items; remove when upstream correlates by output index.
+  const files = ["index.mjs", "index.js"].map((name) => {
+    const filename = join(openaiDirectory, "dist", name);
+    let source = readFileSync(filename, "utf8");
+    for (const [before, after] of [
+      [
+        "activeReasoning[value.item.id] = {",
+        "activeReasoning[value.item.id] = {\n                  outputIndex: value.output_index,",
+      ],
+      [
+        "const activeReasoningPart = activeReasoning[value.item.id];",
+        `const reasoningId = Object.keys(activeReasoning).find((id) => activeReasoning[id].outputIndex === value.output_index);
+                const activeReasoningPart = activeReasoning[reasoningId];
+                if (!activeReasoningPart) throw new Error("Responses reasoning completion has no matching start");`,
+      ],
+      [
+        "id: `${value.item.id}:${summaryIndex}`,",
+        "id: `${reasoningId}:${summaryIndex}`,",
+      ],
+      [
+        "delete activeReasoning[value.item.id];",
+        "delete activeReasoning[reasoningId];",
+      ],
+    ] as const) {
+      source = replaceOnce(source, before, after);
+    }
+    return { filename, source };
+  });
+  for (const { filename, source } of files) writeFileSync(filename, source);
+}
+
 export function applyFactoryCopilotCompatibility(
   factoryDirectory: string,
   catalogJavaScript: string,

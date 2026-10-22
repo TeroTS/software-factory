@@ -4,6 +4,7 @@ import { ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import {
   applyCopilotCompatibility,
   applyFactoryCopilotCompatibility,
+  applyOpenAICopilotCompatibility,
 } from "../src/mastra/copilot/copilot-compatibility.ts";
 
 const catalog = transpileModule(
@@ -21,4 +22,7 @@ applyFactoryCopilotCompatibility(
 );
 applyCopilotCompatibility(
   fileURLToPath(new URL("../node_modules/@mastra/code-sdk/", import.meta.url)),
+);
+applyOpenAICopilotCompatibility(
+  fileURLToPath(new URL("../node_modules/@ai-sdk/openai/", import.meta.url)),
 );
