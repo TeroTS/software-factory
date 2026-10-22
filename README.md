@@ -51,4 +51,4 @@ npm exec -- playwright-core install-deps chromium
 
 Tests need no `.env`, provider sign-in, or database service. Coverage: `coverage/index.html`. For coverage alone, run `npm run test:coverage`.
 
-Development commands, compatibility patches, and upgrade constraints: [`AGENTS.md`](AGENTS.md). Do not skip npm install scripts; they apply required Copilot compatibility patches.
+Development commands, compatibility patches, and upgrade constraints: [`AGENTS.md`](AGENTS.md). Do not skip npm install scripts; they apply required Copilot and session-handoff compatibility patches.

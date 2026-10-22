@@ -1,7 +1,26 @@
 # Lessons learned
 
+- [2026-10-23 — Recheck run liveness after asynchronous setup](#2026-10-23--recheck-run-liveness-after-asynchronous-setup)
 - [2026-10-23 — Correlate Copilot reasoning by output index](#2026-10-23--correlate-copilot-reasoning-by-output-index)
 - [2026-10-21 — Keep SQLite outside rebuilt dev output](#2026-10-21--keep-sqlite-outside-rebuilt-dev-output)
+
+## 2026-10-23 — Recheck run liveness after asynchronous setup
+
+**Context:** Local Factory automatic Planning → Building handoff; `@mastra/core@1.79.0`.
+
+**Impact:** Building reported no editing, execution, or transition tools; no implementation or PR resulted.
+
+**Symptoms:** An isolated real-controller/SQLite/workspace regression started with 19 tools, then woke a second run with none.
+
+**Root cause:** `Session.sendSignal` captured run flags before awaiting authorization/thread/subscription setup. If that run ended during setup, the stale active-delivery path could wake an idle thread without constructing controller toolsets or execution context. The race is reproduced; the separate live suspended-run error is not explained by this test.
+
+**Fix:** Version/source-checked ESM/CJS install patch rechecks the same run's current identity/liveness/abort state before the synchronous delivery call; otherwise reuse upstream's full startup path. Do not grant broader permissions or manually replace the missing tools.
+
+**Verification:** Regression failed before patching and passed afterward. Both module formats execute real file editing and sandbox commands in temporary directories, preserve identity, and honor restrictions/cancellation. All 167 tests pass with 100% coverage; formatting, typecheck, and build pass. Live card retry was not performed; automation stays off.
+
+**Prevention / follow-ups:** Test active-to-idle races with a deterministic setup barrier, not sleeps. Check actual model-visible tools and execution, not a dispatcher success flag. Retain version/source-drift guards and investigate the suspended-run failure separately.
+
+**References:** `src/mastra/compatibility/session-signal.ts`, `tests/integration/session-signal.test.ts`, `tests/integration/session-signal-compatibility.test.ts`, `docs/slices/current-slice.md`.
 
 ## 2026-10-23 — Correlate Copilot reasoning by output index
 
