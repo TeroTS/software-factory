@@ -21,6 +21,53 @@ export function applyCopilotCompatibility(sdkDirectory: string): void {
     const after = `if (${condition}) return COPILOT_FALLBACK_MODELS;`;
     source = replaceOnce(source, before, after);
   }
+  source = replaceOnce(
+    source,
+    'import { createOpenAICompatible } from "@ai-sdk/openai-compatible";',
+    'import { createOpenAICompatible } from "@ai-sdk/openai-compatible";\nimport { createOpenAI } from "@ai-sdk/openai";',
+  );
+  source = replaceOnce(
+    source,
+    'const last = input[input.length - 1];\n\t\tif (last?.role && last.role !== "user") return true;',
+    'const last = input[input.length - 1];\n\t\tif (last?.role && last.role !== "user" || last?.type === "function_call_output") return true;',
+  );
+  // shortcut: honor Responses-only catalog entries in the pinned SDK; remove when upstream routes them.
+  source = replaceOnce(
+    source,
+    "\treturn wrapLanguageModel({\n\t\tmodel: copilot.chatModel(modelId),",
+    `\tconst resolveResponsesModel = async (params) => {
+		const catalog = await getCopilotModelCatalog({ authStorage: options?.authStorage });
+		const entry = catalog.find((model) => model.id === modelId);
+		if (!entry?.supportedEndpoints.includes("/responses") || entry.supportedEndpoints.includes("/chat/completions")) return;
+		params.providerOptions = {
+			...params.providerOptions,
+			openai: { ...params.providerOptions?.openai, store: false }
+		};
+		return createOpenAI({
+			baseURL: "https://api.githubcopilot.com",
+			apiKey: "oauth-placeholder",
+			headers,
+			fetch: buildGitHubCopilotOAuthFetch({ authStorage: options?.authStorage })
+		}).responses(modelId);
+	};
+	return wrapLanguageModel({
+		model: copilot.chatModel(modelId),`,
+  );
+  source = replaceOnce(
+    source,
+    "middleware: [createCopilotMiddleware(modelId)]",
+    `middleware: [createCopilotMiddleware(modelId), {
+			specificationVersion: "v3",
+			wrapGenerate: async ({ params, doGenerate }) => {
+				const responses = await resolveResponsesModel(params);
+				return responses ? responses.doGenerate(params) : doGenerate();
+			},
+			wrapStream: async ({ params, doStream }) => {
+				const responses = await resolveResponsesModel(params);
+				return responses ? responses.doStream(params) : doStream();
+			}
+		}]`,
+  );
   writeFileSync(filename, source);
 }
 

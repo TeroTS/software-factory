@@ -24,9 +24,11 @@ beforeEach(() => {
     join(directory, "package.json"),
   );
   sourceFile = join(providerDirectory, "github-copilot.js");
-  original = readFileSync(
-    resolve("node_modules/@mastra/code-sdk/dist/providers/github-copilot.js"),
-    "utf8",
+  original = withoutRouting(
+    readFileSync(
+      resolve("node_modules/@mastra/code-sdk/dist/providers/github-copilot.js"),
+      "utf8",
+    ),
   )
     .replace(
       'if (!credential || credential.type !== "oauth") return COPILOT_FALLBACK_MODELS;',
@@ -43,10 +45,34 @@ afterEach(() => {
   rmSync(directory, { recursive: true, force: true });
 });
 
-it("patches only the two unauthenticated returns and is idempotent", () => {
+function withoutRouting(source: string): string {
+  return source
+    .replace('import { createOpenAI } from "@ai-sdk/openai";\n', "")
+    .replace(
+      /\tconst resolveResponsesModel = async \(params\) => \{[\s\S]*?\n\t\};\n/,
+      "",
+    )
+    .replace(
+      /middleware: \[createCopilotMiddleware\(modelId\), \{[\s\S]*?\n\t\t\}\]/,
+      "middleware: [createCopilotMiddleware(modelId)]",
+    )
+    .replace(
+      'last?.role && last.role !== "user" || last?.type === "function_call_output"',
+      'last?.role && last.role !== "user"',
+    );
+}
+
+it("patches discovery and endpoint routing without changing unrelated code, idempotently", () => {
   applyCopilotCompatibility(directory);
   const patched = readFileSync(sourceFile, "utf8");
-  expect(patched).toBe(
+  expect(patched).toContain('import { createOpenAI } from "@ai-sdk/openai";');
+  expect(patched).toContain(
+    'entry.supportedEndpoints.includes("/chat/completions")',
+  );
+  expect(patched).toContain("responses.doGenerate(params)");
+  expect(patched).toContain("responses.doStream(params)");
+  expect(patched).toContain('last?.type === "function_call_output"');
+  expect(withoutRouting(patched)).toBe(
     original
       .replace(
         'if (!credential || credential.type !== "oauth") return [];',
@@ -72,10 +98,19 @@ it("rejects an SDK version change without modifying its source", () => {
   expect(readFileSync(sourceFile, "utf8")).toBe(original);
 });
 
-it.each(["missing", "duplicate"])(
-  "rejects a %s anchor without partially patching the source",
-  (shape) => {
-    const anchor = "if (!accessToken) return [];";
+it.each(
+  [
+    "if (!accessToken) return [];",
+    'import { createOpenAICompatible } from "@ai-sdk/openai-compatible";',
+    'const last = input[input.length - 1];\n\t\tif (last?.role && last.role !== "user") return true;',
+    "\treturn wrapLanguageModel({\n\t\tmodel: copilot.chatModel(modelId),",
+    "middleware: [createCopilotMiddleware(modelId)]",
+  ].flatMap((anchor) =>
+    ["missing", "duplicate"].map((shape) => ({ anchor, shape })),
+  ),
+)(
+  "rejects $shape anchor $anchor without partially patching the source",
+  ({ anchor, shape }) => {
     const changed =
       shape === "missing"
         ? original.replace(anchor, "throw new Error('changed');")
