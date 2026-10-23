@@ -3,10 +3,12 @@
 Source: `DECISIONS.md`
 
 ## Summary
+
 - A local, self-hosted Mastra Factory project in this repo root (TypeScript, npm), used by one local developer/admin without signing in and bound strictly to `127.0.0.1`. A local identity provider assigns requests a fixed identity without verifying credentials. It uses local SQLite storage via `LibSQLFactoryStorage` under `data/`, `LocalSandbox` for agent execution, and GitHub Copilot as the model provider. No hosted Factory or database services.
 - User-approved scope revision: a local identity provider replaces the original Simple Auth requirement and the subsequent `auth: null` approach, which the bundled UI rejects. This supplies identity, not access protection; browser compatibility is verified by the real-server Chromium test.
 
 ## Goals
+
 - `npm install` succeeds, and `npm run dev` starts Factory at `http://localhost:4111` without configuration errors.
 - Factory opens without signing in or configuring an admin token; requests receive the fixed local identity and the server binds only to `127.0.0.1`.
 - Factory state is stored in `data/factory.db` and persists across restarts.
@@ -16,6 +18,7 @@ Source: `DECISIONS.md`
 - `README.md` documents prerequisites, install, env configuration, start commands, and verification steps.
 
 ## Non-Goals
+
 - Credential verification, login UI, external identity services, Mastra platform auth, PostgreSQL, Turso, PlatformSandbox, E2B, Docker, Redis.
 - General GitHub App provisioning or access to existing project repositories; Linear/Slack/Jira/GitLab/incident.io integrations.
 - AWS Bedrock, GitHub Models (`GITHUB_TOKEN`), and other model providers.
@@ -26,6 +29,7 @@ Source: `DECISIONS.md`
 ## User Stories
 
 ### US-01: Start the local Factory Server
+
 Primary actor: Local developer/admin
 
 Trigger: The local developer/admin has cloned the repo, run `npm install`, and copied `.env.example` to `.env` with the required values filled in.
@@ -39,6 +43,7 @@ Authoritative state transition: Factory Server goes from not running to running 
 Slice boundary: Scaffold with `npm create factory@latest` `--no-platform` into the repo root, keeping `.git` and `instructions.txt`. Add env validation for `FACTORY_CREDENTIAL_ENCRYPTION_KEY`, `.env.example`, `.gitignore`, the Vitest + coverage setup, and the README sections for prerequisites, install, env configuration, and start. Unit tests cover env validation.
 
 Acceptance criteria:
+
 - `npm install`, typecheck, and `npm run dev` succeed with a valid `.env`, and `http://localhost:4111` responds.
 - Startup fails fast with a clear error naming the missing variable when `FACTORY_CREDENTIAL_ENCRYPTION_KEY` is unset. Secret values are never logged.
 - `.env.example` lists every required variable with a safe placeholder. It shows `PORT` and `MASTRACODE_PUBLIC_URL` as commented defaults, and the README gives `openssl rand -base64 32` for generating the key.
@@ -46,9 +51,11 @@ Acceptance criteria:
 - No secrets are hardcoded in source.
 
 Deferred follow-ups:
+
 - US-02, US-03, US-04, US-05.
 
 ### US-02: Open Factory locally without signing in
+
 Primary actor: Local developer/admin
 
 Trigger: The Factory Server is running and the local developer/admin opens its loopback URL.
@@ -62,6 +69,7 @@ Authoritative state transition: Each request is assigned the same fixed local de
 Slice boundary: Add a minimal local identity provider in `src/mastra/auth.ts`, implementing the installed upstream Mastra auth contract, and pass it to `MastraFactory` instead of `auth: null`. Keep the server explicitly bound to `127.0.0.1`, the encryption key required, and admin-token variables unused. Keep upstream HTTP schemas and bundled UI unchanged. Include the fixed organization ID `local`, required by upstream Factory project listing. No custom login UI, login endpoint, token adapter, organization-management UI or provisioning, or session storage is added.
 
 Acceptance criteria:
+
 - Startup succeeds without `FACTORY_ADMIN_TOKEN`; `FACTORY_CREDENTIAL_ENCRYPTION_KEY` remains required and is never logged.
 - In a fresh browser context against a real server and temporary SQLite file, Factory renders its onboarding heading and enabled "Create my first factory" button without a sign-in redirect, credential form, or auth-configuration error.
 - Factory HTML and an existing Factory API endpoint respond without credentials; the existing `/auth/me` reports `authenticated: true` with the fixed `local-admin` identity, organization ID `local`, and no token or session cookie.
@@ -71,9 +79,11 @@ Acceptance criteria:
 - The README warns against proxies, tunnels, and LAN exposure and explains that local processes/users able to reach the server can access its capabilities, including command execution.
 
 Deferred follow-ups:
+
 - None.
 
 ### US-03: Factory data persists across restarts
+
 Primary actor: Local developer/admin
 
 Trigger: The local developer/admin has created Factory data, such as a Factory in the UI, and restarts the Factory Server.
@@ -87,15 +97,18 @@ Authoritative state transition: Factory state is persisted in the SQLite file at
 Slice boundary: The documented `src/mastra/storage.ts` with `LibSQLFactoryStorage` and `vector = undefined`, imported into `src/mastra/index.ts`. `data/` is created automatically when missing, and the DB path resolves against the project root. The README adds a persistence verification section. Tests cover directory creation and path resolution. They also cover a write/reopen/read round trip through `LibSQLFactoryStorage` against a real temporary SQLite file, with no mocks or fakes.
 
 Acceptance criteria:
+
 - On a first run with no `data/` directory, the directory and `factory.db` are created automatically.
 - Data created before a restart is present after the restart.
 - The DB and its journal/WAL files are ignored by Git.
 - If the storage location can't be created or written, startup fails with a clear error.
 
 Deferred follow-ups:
+
 - None.
 
 ### US-04: Run a command in LocalSandbox
+
 Primary actor: Local developer/admin
 
 Trigger: The local developer/admin wants to confirm local sandbox execution works.
@@ -109,15 +122,18 @@ Authoritative state transition: A session directory `<sandbox root>/<sessionId>`
 Slice boundary: The documented `src/mastra/sandbox.ts` `LocalSandbox` callback, imported into `src/mastra/index.ts` in place of the inline sandbox callback. The root is `MASTRACODE_LOCAL_SANDBOX_ROOT`, falling back to `~/.mastracode/web/sandboxes`, and is created when missing. The sandbox check script uses that same callback. The README adds a sandbox verification section. Unit tests cover root resolution and creation.
 
 Acceptance criteria:
+
 - The sandbox check script exits 0 and prints the `git --version` output.
 - The sandbox root is created if missing and is writable. The script fails with a clear error if it isn't.
 - Factory uses the explicit `LocalSandbox` callback and selects no remote provider.
 - Hand-written modules (storage, sandbox, env validation) have at least 80% test coverage.
 
 Deferred follow-ups:
+
 - US-06.
 
 ### US-05: Connect GitHub Copilot as the model provider
+
 Status: done — the local developer/admin confirms the Copilot integration works and accepts this story as complete.
 
 Primary actor: Local developer/admin
@@ -133,6 +149,7 @@ Authoritative state transition: The Copilot credential is stored, encrypted with
 Slice boundary: User-approved compatibility revision: add a reproducible, version-checked install-time patch for `@mastra/code-sdk@1.15.0` so its existing Copilot fallback catalog is available before sign-in. User-approved organization-admin revision: implement the installed upstream organizations-provider contract so only fixed user `local-admin` is administrator of existing organization `local`; reject all other user/organization IDs and do not provision or migrate data. User-approved catalog revision: use the selected personal/organization Copilot credential to fetch its live model catalog, reusing upstream token refresh and model filtering without server-global credential copying or cross-scope catalog sharing. Keep upstream HTTP schemas, bundled UI, credential checks, encrypted SQLite persistence, fixed identity IDs, and environment variables unchanged. Document personal and Factory-wide provider connection steps and keeping the encryption key paired with `data/`. Automated checks prove discovery and credential gating; actual GitHub sign-in and connection usability after restart remain manual acceptance checks.
 
 Acceptance criteria:
+
 - A clean install applies the compatibility patch idempotently and fails clearly on an unexpected SDK version or source shape.
 - Before sign-in, the real Factory Settings → Your models and Factory models pages offer enabled GitHub Copilot sign-in buttons, but models are not usable without credentials. The existing provider endpoint reports organization-admin capability only for the fixed local identity, and organization credential operations succeed without changing personal credentials.
 - The Copilot sign-in completes and the provider shows as connected.
@@ -141,9 +158,11 @@ Acceptance criteria:
 - No missing-encryption warning appears in the Factory Server logs.
 
 Deferred follow-ups:
+
 - US-06.
 
 ### US-06: Run a checkout-and-command smoke test in LocalSandbox
+
 Status: done — the manual session recorded actual `git status` output on `factory/item-0682d782-7ac8-4783-8fc7-95667dd27ed3`; local inspection found a clean checkout at initial commit `d460b83`. Subsequent live GitHub checks confirmed the App installation selects only `TeroTS/factory-smoke-test`, `main` remains at `d460b83b2282bac0fa6eb32a9337956b70733dde`, and no pull requests exist. The user also confirmed live Sol execution after the routing fix in `5cccfc6`. Automated checks passed with 120 tests, 100% coverage, formatting, typecheck, and build; this did not test automated pipeline progression.
 
 Primary actor: Coding agent session
@@ -159,6 +178,7 @@ Authoritative state transition: A session sandbox goes from not started to start
 Slice boundary: Reuse the installed upstream GitHub App integration, connection UI, work-item flow, and LocalSandbox. GitHub App configuration is optional for ordinary startup but all-or-nothing when supplied, including a stable OAuth state secret. The user creates the App and enters secrets locally; the assistant implements wiring and tests without receiving secrets. Use one personal-account App installed only on `TeroTS/factory-smoke-test` (App slug `factory-example`). Keep loopback-only binding, existing identity IDs, encrypted SQLite, and Copilot credential scopes unchanged. Use manual start and upstream polling; no webhook delivery, relay, tunnel, custom API/UI, additional model provider, or classic PAT is required.
 
 Acceptance criteria:
+
 - Existing startup and Copilot functionality still work without GitHub App configuration.
 - Partial/invalid App configuration fails fast with variable-specific errors that never print secret values.
 - With complete valid configuration, the real local server reports the existing GitHub integration enabled, keeps its browser callback on loopback, and validates signed OAuth state. No repository access or paid provider calls are needed for automated startup checks.
@@ -168,10 +188,26 @@ Acceptance criteria:
 - Setup instructions are kept in focused GitHub setup documentation, not delivery tracking in README or AGENTS. Automated local checks preserve coverage; actual GitHub authorization and Copilot execution require human-assisted acceptance.
 
 Deferred follow-ups:
+
 - Code changes, commits, pushes, and pull requests remain outside US-06; US-07 separately authorizes one limited pipeline test. Webhook delivery and broader repository access remain out of scope.
 
 ### US-07: Run one automated file-to-PR pipeline test
-Status: active — recovered-run attempt blocked in Building, not a clean unattended pass. The initial Responses `summaryParts` failure was fixed with the user-approved, tested install-time compatibility patch (143 tests, 100% coverage, formatting, typecheck, build). The first retry stopped on the planner's incorrect 29-byte assertion. The user then authorized one corrective message in the same Planning session: assert 30 bytes without changing the required content. The agent validated that correction and automatically transitioned to Building at `2026-10-22T21:38:52.681Z`; no manual stage advance or implementation occurred. Building's automatic kickoff encountered a missing suspended-run error, retried, then the agent reported missing editing/execution/transition tools and stopped. Its dispatcher decision says `succeeded`, but no implementation, self-review, commit, push, or PR resulted. Evidence and the local plan are retained; automation is off. A subsequently approved, tested install-time fix for `@mastra/core@1.79.0` now rechecks run liveness after asynchronous signal setup, preventing a reproduced tools/context-loss race; 167 tests and 100% coverage pass. No live workflow retry was made after that fix; the separate suspended-run error remains unresolved. US-07 remains unaccepted; details and verification are in `docs/slices/current-slice.md`.
+
+Status: active — authorized recovery of the current card produced a real independent approval for the pushed commit and one linked open PR. This is a human-assisted recovered run, not a clean unattended pass; post-success polling acceptance remains pending.
+
+Earlier original-card outcome: partially recovered run blocked at independent self-review, not a clean unattended pass. Following the tested Responses and session-handoff compatibility fixes and the approved 29 → 30-byte assertion correction, the latest user-authorized retry resumed the same Building card/session. The agent validated the unchanged exact content, committed/pushed `aacb75fee0c87017673d1502e2b099c55472b500` adding only `PIPELINE_TEST.md`, and automatically transitioned to Review at `2026-10-22T22:12:38.413Z`. Automatic self-review then encountered another missing suspended-run error and stopped under its role guard: the latest phase snapshot still said builder (`role: work`), despite an active review binding. No independent verdict or PR exists; dispatcher `succeeded` is not acceptance. Read-only live GitHub checks confirm exactly 30 bytes, one added file/commit, and unchanged `main`; automation is off and normal polling restored. No manual stage advances or implementation by the observer occurred. Prior automated verification remains 167 tests and 100% coverage; no suite rerun during this live retry. US-07 remains unaccepted; full history/evidence is in `docs/slices/current-slice.md`.
+
+Follow-up: the user enabled auto-start, auto-approve plans, and self-review and created a separate card, `ff4d97ec-5085-4443-870e-92294445ad7a`. Its reviewer phase is correct, but the agent reports a missing verdict tool. An isolated regression reproduced stale builder tools during active handoff; the authorized version-checked dispatcher compatibility fix now waits for a fresh reviewer run without widening tools or bypassing policy. The final 18 targeted checks and typecheck pass. An earlier full run passed 184 tests with 100% coverage. The final verbose rerun records 184 passing cases with the remaining startup/browser case interrupted by the 120-second outer limit, before its existing 300-second test deadline; final full coverage remains unverified. A bounded diagnostic subsequently traced three successful server generations and advancing browser/model checks before a fourth startup at about 90 seconds, supporting cumulative real startup/shutdown time rather than a frozen browser operation; no longer timeout or retained test change was used. Following an authorized database/key backup and brief server stop, build passed and the loopback server was restarted with unchanged card/settings. Live acceptance remains pending; no live retry or verdict was supplied. Automation remains enabled at the user's request; publish-review-checks stays off. This does not establish the cause of the original missing-suspended-run failure or accept US-07.
+
+Verification and first authorized follow-up (2026-10-23): the unchanged startup/browser test completed in 105.232 seconds under its existing 300-second deadline using Node `22.19.0`. Formatting, explicit AGENTS formatting, typecheck, and the final full suite pass: 185 tests, 100% statements/branches/functions/lines coverage. The prior build pass remains applicable; no application changes were made. After a fresh SQLite/key backup and successful read-only GitHub preflight, exactly one recovery dispatched `factory-self-review` for existing card `ff4d97ec-5085-4443-870e-92294445ad7a`. Its fresh Review phase was correct, but sandbox Git authentication failed during remote inspection. The reviewer stopped without a verdict or PR; dispatcher `succeeded` is not acceptance. Final independent GitHub checks confirm the unchanged pushed head `aba78f81ab471a18f4ea5806ef025b429b19eb0b`, exact single-file/30-byte diff, baseline `main`, and zero PRs. Card remains Review revision 8 with no verdict; no new card, second recovery, manual stage advance, or credential/application change occurred. Existing user-enabled automation remains `(on, on, on, off)`. US-07 remains blocked and unaccepted; details are in the slice note.
+
+Latest authorized recovery (2026-10-23): backed up SQLite/key state and rechecked the selected repository, permissions, branch, and zero-PR baseline, then dispatched exactly one further recovery of the same current card. Its first tool call, `github_refresh_token`, succeeded; actual sandbox Git authentication subsequently worked. Independent review inspected and tested the unchanged pushed head `aba78f81ab471a18f4ea5806ef025b429b19eb0b`, then recorded an authenticated `approve` verdict with its actual test report at `08:34:44.713Z`. The normal governed builder handoff opened [PR #1](https://github.com/TeroTS/factory-smoke-test/pull/1) at `08:35:30Z`, after the verdict, from that exact head. GitHub verifies one commit adding only the exact 30-byte `PIPELINE_TEST.md`; `main` is unchanged, the PR is open/unmerged, and auto-merge is off. Factory automatically linked the PR to the existing session. No new card, file edits, commits, pushes, stage advances, application changes, or observer-authored verdict occurred. Card remains Review revision 10; user-enabled automation/settings/default scope and `.env` are unchanged. Two completed hourly polling cycles have not been verified; the recovered outcome does not establish a clean unattended US-07 pass or prove why the earlier live token was rejected.
+
+Separate user merge observation (2026-10-23): the user subsequently merged PR #1 at `09:04:49Z`; GitHub confirms merge/new `main` commit `fa9b3796eefaf6e9d782dbe8291eb2597e10cd3a` and exact marker bytes. This extends beyond the original unmerged/unchanged-main test boundary. At `09:08:41Z`, Factory still shows the local Work card in Review revision 10. Installed polling only considers externally sourced PR cards; this local card has no external source, and session PR linkage alone does not qualify it. No manual stage change or application fix was made. The recovered review-to-PR evidence stands, but automatic merge-to-Done was not achieved on this local-card path; details are in the slice note.
+
+User-approved issue-backed follow-up (2026-10-23): separately authorize exactly one new smoke-test GitHub issue in `TeroTS/factory-smoke-test`, created through the local developer/admin's existing GitHub CLI account rather than the App bot. The task adds only `ISSUE_PIPELINE_TEST.md` containing `Factory issue pipeline test passed.` followed by one newline, preserving the existing marker and other files. Observe normal one-minute issue ingestion, external issue identity, required acceptance gates, implementation, independent reviewed-head approval, and one PR with `Closes #<issue number>`. Leave merging to the user; no auto-merge, default-branch edits, new provider/PAT, synthetic events, manual implementation/verdict, or application change is authorized. Existing cards/sessions/settings/credentials remain intact; back up the database/key pair first. This is an explicitly approved additional live test, not retroactive acceptance of the original single-local-card run. If upstream policy requires human acceptance, stop at that gate and report it rather than bypassing it. Status: issue created/imported; awaiting human acceptance into Planning. Backed up SQLite/key privately at `~/.factory-issue-test-backup.2fkoowi3/`; preflight verified selected repository/write permissions, baseline `main` `fa9b3796eefaf6e9d782dbe8291eb2597e10cd3a`, no existing issues, and only previously merged PR #1. Created [issue #2](https://github.com/TeroTS/factory-smoke-test/issues/2) as human `TeroTS` at `09:26:56Z`; issue polling materialized Work card `095a0075-a3c3-4c5d-bde5-127b3604c2be` at `09:27:50Z` with external type `issue`, repository-scoped issue identity, and trusted-author metadata. At `09:29:00Z` it remains in Intake revision 2 with no session/acceptance and no new PR. Requested that the user move this maintenance card to Planning once; no stage was forced, session started, or model kickoff sent. Original card, `.env`, defaults/scopes, and settings are unchanged. Actual required content length is 36 bytes; implementation/review/PR linkage remain unverified.
+
+Issue-backed follow-up outcome (2026-10-23): user reports the PR merged, issue closed, and task automatically Done; read-only checks confirm [PR #3](https://github.com/TeroTS/factory-smoke-test/pull/3) contains `Closes #2`, changes only `ISSUE_PIPELINE_TEST.md`, and was created at `09:44:30Z` from reviewed head `fe65ce26d330a7563915a30fe98ae2281e5d06a8`, after authenticated reviewer approval at `09:44:03.602Z`. The user merged it at `09:46:10Z`; GitHub closed issue #2 at `09:46:12Z`. Issue reconciliation automatically transitioned the corresponding Work card to Done at `09:46:50.828Z`, about 39 seconds after issue closure. The observed working chain is PR closing reference → GitHub issue closure → issue reconciliation → Work card Done; no PR-card eligibility patch was needed. The successful current card is `a22fb994-8637-4939-8cd6-d46a55d90441`, not the initially observed imported card; intervening card replacement was not observed by the assistant. A separate triage decision for the earlier card remains failed with `run_terminal_event_missing`; therefore this verifies issue-backed completion, not a completely failure-free/uninterrupted original-card run. No application fix, manual Done transition, retry, or state edit was made by the assistant during this observation.
 
 Primary actor: Local developer/admin
 
@@ -186,6 +222,7 @@ Authoritative state transition: One accepted work item advances through automate
 Slice boundary: Reuse the installed upstream UI, contracts, rules, polling, Copilot, encrypted SQLite, and LocalSandbox. Use only `TeroTS/factory-smoke-test`, one work item, and one PR. The developer/admin approves Contents and Pull requests read/write permissions on the existing App installation without broadening repository selection. Upstream non-bug acceptance remains required: if intake classifies this documentation task as non-bug, the human moves it into Planning once; this is a launch/acceptance gate, not a successful fully unattended intake test. Do not misclassify the task or patch away the gate. No new API, UI, provider, PAT, or orchestration engine is planned.
 
 Acceptance criteria:
+
 - Back up existing local storage before changing Factory state; preserve the database/key pair, identity, credentials, defaults, existing cards, and sessions.
 - Verify the installation still selects only the disposable repository, effective write permissions are approved, and the default-branch SHA/PR baseline is recorded before triggering work.
 - Inspect existing cards and automation policy before enabling factory-wide settings. Do not unintentionally run existing work; if isolation cannot be achieved with existing controls, stop for a decision rather than moving/deleting existing cards.
@@ -197,8 +234,10 @@ Acceptance criteria:
 - Live GitHub/Copilot execution is a human-assisted acceptance check, not an automated test using developer credentials. Any authored runtime change discovered to be necessary requires regression tests and existing coverage standards; stop before changing contracts or bypassing upstream policy.
 
 Deferred follow-ups:
+
 - A separate failing-validation/retry scenario after the first successful run; do not add a second test card in this slice.
 - Fully unattended non-bug intake, merge/deployment, broader repository access, webhooks/tunnels, and production readiness.
 
 ## Open Questions
+
 - US-07 is blocked on human approval of the App's Contents and Pull requests write permissions. Verify whether existing controls can isolate the test without affecting the existing manual smoke-test card.

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { ModuleKind, ScriptTarget, transpileModule } from "typescript";
+import { applyReviewHandoffCompatibility } from "../src/mastra/compatibility/review-handoff.ts";
 import { applySessionSignalCompatibility } from "../src/mastra/compatibility/session-signal.ts";
 import {
   applyCopilotCompatibility,
@@ -19,6 +20,9 @@ const catalog = transpileModule(
 ).outputText;
 applySessionSignalCompatibility(
   fileURLToPath(new URL("../node_modules/@mastra/core/", import.meta.url)),
+);
+applyReviewHandoffCompatibility(
+  fileURLToPath(new URL("../node_modules/@mastra/factory/", import.meta.url)),
 );
 applyFactoryCopilotCompatibility(
   fileURLToPath(new URL("../node_modules/@mastra/factory/", import.meta.url)),

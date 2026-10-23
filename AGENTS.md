@@ -40,7 +40,7 @@ Build needs network; peer warnings are not failures. Report stalls and ask; do n
 
 - Keep the literal `new Mastra(...)` and `prepare()` → constructor → `finalize()` sequence in `src/mastra/index.ts`.
 - Never hand-edit or commit `.mastra/`, `src/mastra/public/`, dependencies, databases/journals, or coverage output. Build regenerates the first two.
-- Do not skip npm lifecycle scripts. Copilot patches live in `src/mastra/copilot/copilot-compatibility.ts`; installation compiles `copilot-catalog.ts` into installed Factory. The session-handoff patch lives in `src/mastra/compatibility/session-signal.ts`. Keep patches idempotent and fail on dependency version/source drift. Review/remove them before upgrades; never patch installed artifacts manually.
+- Do not skip npm lifecycle scripts. Copilot patches live in `src/mastra/copilot/copilot-compatibility.ts`; installation compiles `copilot-catalog.ts` into installed Factory. Session-handoff patches live in `src/mastra/compatibility/session-signal.ts` and `review-handoff.ts`. Keep patches idempotent and fail on dependency version/source drift. Review/remove them before upgrades; never patch installed artifacts manually.
 - Preserve selected credential scope and session owner. Never copy personal credentials into organization/global storage, borrow another scope's catalog, or share cross-scope caches. Retain upstream token refresh, model filtering, and fallback behavior. Do not silently change saved defaults.
 
 ## Testing
