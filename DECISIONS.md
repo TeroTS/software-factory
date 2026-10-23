@@ -21,7 +21,7 @@ The user explicitly approved proceeding with one isolated automated pipeline tes
 
 ## US-08 Approved-Ticket Intake Policy
 
-The user approved planning automatic acceptance for tickets generated with `../skills/skills/engineering/to-tickets`. This is a separate future story, not a change to US-07's acceptance evidence or authorization to run live work.
+The user approved planning automatic acceptance for tickets generated with `.agents/skills/to-tickets`. This is a separate future story, not a change to US-07's acceptance evidence or authorization to run live work.
 
 - Publish to GitHub through the existing selected repository integration; local ticket files are not an intake source in this story. Do not broaden repository access.
 - The developer/admin explicitly approves both the ticket breakdown and implementation. After publishing complete ticket bodies and blocking relationships, the publishing skill applies `factory-approved` last. Existing `ready-for-agent` alone is not authorization and does not imply blockers are complete.

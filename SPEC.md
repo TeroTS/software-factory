@@ -244,7 +244,7 @@ Status: planned — policy approved; implementation and live execution are not s
 
 Primary actor: Local developer/admin
 
-Trigger: A GitHub ticket published by `../skills/skills/engineering/to-tickets` is imported or its eligibility changes.
+Trigger: A GitHub ticket published by `.agents/skills/to-tickets` is imported or its eligibility changes.
 
 Happy-path action: Approve the proposed ticket breakdown and explicitly authorize implementation once. The publishing skill creates the issues and dependency links, then applies `factory-approved` last. Factory evaluates eligible tickets through its existing polling/transition boundaries.
 
