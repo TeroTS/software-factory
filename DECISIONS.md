@@ -1,6 +1,6 @@
 # Local Self-Hosted Mastra Factory Decisions
 
-Status: Accepted v3 — US-06 smoke test plus one user-approved US-07 automated pipeline test.
+Status: Accepted v4 — earlier smoke/pipeline scope plus the planned US-08 approved-ticket intake policy.
 
 ## Problem Summary
 
@@ -18,6 +18,19 @@ The user explicitly approved proceeding with one isolated automated pipeline tes
 - A test issue and agent-authored branch/commit/push/PR are allowed only for this task. No merge, auto-merge, default-branch change, destructive cleanup, extra repository access, or automatic App/repository provisioning is authorized.
 - Prove the exact diff, validation commands, independent review verdict, linked PR, unchanged default branch, and lack of duplicate dispatch during subsequent polling. Failures must remain visible, not be repaired by manually performing the pipeline steps.
 - A separate failing-validation scenario is deferred until the first run succeeds. Live provider calls are acceptance checks, never automated tests using developer credentials.
+
+## US-08 Approved-Ticket Intake Policy
+
+The user approved planning automatic acceptance for tickets generated with `../skills/skills/engineering/to-tickets`. This is a separate future story, not a change to US-07's acceptance evidence or authorization to run live work.
+
+- Publish to GitHub through the existing selected repository integration; local ticket files are not an intake source in this story. Do not broaden repository access.
+- The developer/admin explicitly approves both the ticket breakdown and implementation. After publishing complete ticket bodies and blocking relationships, the publishing skill applies `factory-approved` last. Existing `ready-for-agent` alone is not authorization and does not imply blockers are complete.
+- Eligible tickets require an allowed repository, trusted publisher and approval-label actor, `ready-for-agent`, `factory-approved`, required ticket sections, and all blockers Done. They move directly from Intake to Planning, skipping investigation/classification Triage.
+- `needs-triage` is an explicit signal set by the developer/admin or publishing skill for unresolved investigation or clarification. It is not inferred by Factory from incomplete prose. Conflicting approval/triage labels fail closed in Intake for correction.
+- Blocked tickets remain in Intake and are rechecked when blockers complete. Incomplete approved tickets remain in Intake with a visible validation error; other tickets retain the existing manual flow.
+- Acceptance is an auditable system policy decision, never an impersonated human transition or direct database edit. Planning, implementation, independent review, and manual merge policies remain unchanged.
+- Runtime extension points, trustworthy label provenance, dependency representation/completion mapping, and handling edits after approval must be resolved before implementation. Missing or unverifiable evidence cannot authorize work.
+- No new API/UI is planned. If changed HTTP surfaces are necessary, require reviewed OpenAPI-first contracts. Do not patch dependencies speculatively or change the external skill in this planning task.
 
 ## Goals and Success Criteria
 

@@ -1,6 +1,6 @@
 # Current Slice
 
-Status: active
+Status: done — US-07 explicitly accepted and closed by the local developer/admin. Earlier pending/unaccepted statements below are historical.
 
 ## Slice Goal
 
@@ -20,9 +20,11 @@ Status: active
 
 ## Stories Completed In This Slice
 
+- `US-07 Run one automated file-to-PR pipeline test` — explicitly accepted by the developer/admin as working, with the recorded qualifications.
+
 ## Stories Remaining In This Slice
 
-- `US-07 Run one automated file-to-PR pipeline test`
+- None.
 
 ## Contract Inputs
 
@@ -154,4 +156,14 @@ Status: active
 
 ## Completion Summary
 
+- The developer/admin confirms the pipeline is working and explicitly accepts and closes US-07 based on the recovered independent-review-to-PR outcome and verified issue-backed completion.
+- Acceptance includes the documented human-assisted recovery, unobserved card replacement, incomplete post-success polling verification, and separately user-merged PRs. These qualifications remain recorded; closure does not assert an uninterrupted original-card pass or change historical evidence.
+- Documentation-only closure: no live cards, settings, credentials, or runtime behavior changed. Formatting and diff checks run; no new tests, coverage, or live verification claimed.
+
 ## Next Slice Recommendation
+
+- Planned `US-08 Automatically accept approved generated tickets`, per `SPEC.md` and `DECISIONS.md`'s US-08 Approved-Ticket Intake Policy. US-07 is now accepted and closed; US-08 remains planned, not activated. Its policy does not change US-07's historical human-acceptance requirement.
+- The developer/admin approves the `to-tickets` breakdown and authorizes implementation; the publisher finishes ticket bodies/dependency links before applying `factory-approved` last. `ready-for-agent` alone is insufficient.
+- Trusted, explicitly approved, structurally complete tickets with all blockers Done take Intake → Planning, skipping Triage. An explicit `needs-triage` routes trusted, unblocked tickets to Triage; blocked tickets wait, incomplete approved tickets show a validation error in Intake, and conflicting approval/triage labels fail closed. Other tickets retain manual handling.
+- Before implementation, resolve upstream system-acceptance extension points, verified approval-label provenance, blocker representation/Done mapping, and approval invalidation after edits. Acceptance must be audited as a system decision, not an impersonated human transition.
+- Plan update only: no runtime, external publishing skill, live tickets, database, credentials, settings, or automation switches changed. Tests/coverage/build are not rerun for this documentation-only update; check Markdown formatting and `git diff --check`.

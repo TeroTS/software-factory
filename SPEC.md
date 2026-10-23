@@ -22,7 +22,7 @@ Source: `DECISIONS.md`
 - Credential verification, login UI, external identity services, Mastra platform auth, PostgreSQL, Turso, PlatformSandbox, E2B, Docker, Redis.
 - General GitHub App provisioning or access to existing project repositories; Linear/Slack/Jira/GitLab/incident.io integrations.
 - AWS Bedrock, GitHub Models (`GITHUB_TOKEN`), and other model providers.
-- General end-to-end delivery beyond US-07's single disposable-repository pipeline test; automatic merge.
+- General end-to-end delivery beyond US-07's pipeline test and US-08's approved-ticket intake policy; automatic merge.
 - RBAC, multiple users, LAN/tunnel exposure, production deployment.
 - CI pipeline.
 
@@ -193,7 +193,7 @@ Deferred follow-ups:
 
 ### US-07: Run one automated file-to-PR pipeline test
 
-Status: active — authorized recovery of the current card produced a real independent approval for the pushed commit and one linked open PR. This is a human-assisted recovered run, not a clean unattended pass; post-success polling acceptance remains pending.
+Status: done — the local developer/admin confirms the pipeline is working and explicitly accepts and closes US-07. Acceptance is based on the recovered independent-review-to-PR outcome and verified issue-backed completion. The user accepts the documented recovery, card-replacement, polling-verification, and later merge qualifications; this does not claim a clean unattended original-card run. Earlier status statements below are retained as historical observations.
 
 Earlier original-card outcome: partially recovered run blocked at independent self-review, not a clean unattended pass. Following the tested Responses and session-handoff compatibility fixes and the approved 29 → 30-byte assertion correction, the latest user-authorized retry resumed the same Building card/session. The agent validated the unchanged exact content, committed/pushed `aacb75fee0c87017673d1502e2b099c55472b500` adding only `PIPELINE_TEST.md`, and automatically transitioned to Review at `2026-10-22T22:12:38.413Z`. Automatic self-review then encountered another missing suspended-run error and stopped under its role guard: the latest phase snapshot still said builder (`role: work`), despite an active review binding. No independent verdict or PR exists; dispatcher `succeeded` is not acceptance. Read-only live GitHub checks confirm exactly 30 bytes, one added file/commit, and unchanged `main`; automation is off and normal polling restored. No manual stage advances or implementation by the observer occurred. Prior automated verification remains 167 tests and 100% coverage; no suite rerun during this live retry. US-07 remains unaccepted; full history/evidence is in `docs/slices/current-slice.md`.
 
@@ -238,6 +238,46 @@ Deferred follow-ups:
 - A separate failing-validation/retry scenario after the first successful run; do not add a second test card in this slice.
 - Fully unattended non-bug intake, merge/deployment, broader repository access, webhooks/tunnels, and production readiness.
 
+### US-08: Automatically accept approved generated tickets
+
+Status: planned — policy approved; implementation and live execution are not started. Separate from the completed US-07 slice.
+
+Primary actor: Local developer/admin
+
+Trigger: A GitHub ticket published by `../skills/skills/engineering/to-tickets` is imported or its eligibility changes.
+
+Happy-path action: Approve the proposed ticket breakdown and explicitly authorize implementation once. The publishing skill creates the issues and dependency links, then applies `factory-approved` last. Factory evaluates eligible tickets through its existing polling/transition boundaries.
+
+Visible outcome: An approved, complete, unblocked ticket moves from Intake directly to Planning without a per-ticket acceptance click or Triage run. Dependent tickets wait in Intake and become eligible after their blockers reach Done.
+
+Authoritative state transition: A system policy records acceptance evidence and commits Intake → Planning once through the normal transition service, without acting as the local developer/admin.
+
+Slice boundary: One future story for label/dependency-gated intake on the existing selected GitHub repository. Reuse upstream ingestion, planning, implementation, independent review, storage, and LocalSandbox. Preserve manual acceptance for other tickets, existing sessions/settings/credentials, loopback binding, and manual merging. No new API/UI, provider, repository access, or external skill edit is authorized by this plan update.
+
+Acceptance criteria:
+
+- Automatic acceptance requires the allowed repository, trusted publisher and verified trusted actor applying `factory-approved`, both `ready-for-agent` and `factory-approved`, nonempty What to build and Acceptance criteria sections, and a resolvable blocker declaration or native blocking relationships. The skill's `ready-for-agent` label alone never authorizes execution.
+- Every blocker must be Done before automatic acceptance. Missing, unknown, unreadable, or canceled dependencies do not count as Done; fail closed with a visible reason. Recheck waiting tickets during reconciliation after blockers complete.
+- `needs-triage` explicitly routes an otherwise trusted, unblocked ticket from Intake to Triage instead of granting implementation acceptance. It indicates an unresolved question identified by the developer/admin or publishing skill; Factory does not infer it from ticket prose.
+- A ticket with conflicting `factory-approved` and `needs-triage` labels stays in Intake with a visible correction reason. An incomplete approved ticket also stays in Intake with a validation error, not an automatic Triage run. Tickets outside these explicit routes retain the existing manual flow.
+- The publisher adds approval only after the complete body and blocking relationships exist. Verify approval provenance rather than assuming a trusted issue author proves who applied a label. Unverifiable approval cannot authorize work.
+- Record approval actor/evidence, policy decision, and actual system acceptance/transition. Do not impersonate a human, stamp acceptance with direct SQL, or weaken acceptance for ordinary non-bug tickets. Existing automation settings still govern downstream runs.
+- Repeated or concurrent polling and a server restart cannot duplicate acceptance or Planning kickoff. Failures retain evidence and a visible reason without a retry loop that starts duplicate work.
+- Automated tests cover positive routing, trusted/untrusted and unverifiable approvals, missing/partial/conflicting labels, incomplete bodies, blocked/unblocked/unknown/canceled dependencies, reconciliation/restart/idempotency, and unchanged manual acceptance. Integration tests use real temporary SQLite and runnable Factory boundaries; only remote GitHub/model calls may be doubled.
+- Run `./scripts/verify`; maintain at least 80% statements, branches, functions, and lines without decreasing existing coverage. Reports remain `coverage/index.html` and `coverage/lcov.info`. Live GitHub/Copilot acceptance requires separate authorization, backup of the database/key pair, and isolation from existing work.
+
+Implementation plan:
+
+1. Inspect installed upstream ingestion, transition/acceptance policy, label provenance, and dependency support. Resolve the contract questions below before runtime changes; prefer supported extension points.
+2. Define the minimal non-HTTP policy contract and integration with existing reconciliation. If HTTP changes prove necessary, stop for reviewed OpenAPI YAML and generated contracts/client first.
+3. Add failing policy and real-boundary regression tests, implement the smallest complete change, then run formatting/typecheck/coverage/build through `./scripts/verify`.
+4. Coordinate a separately approved publishing-skill update to apply approval last and use the agreed dependency format. No tickets should enter the live automatic route before both sides agree.
+
+Deferred follow-ups:
+
+- Semantic ambiguity detection, automatic merge, new tracker integrations, local-file intake, and broader repository access.
+
 ## Open Questions
 
-- US-07 is blocked on human approval of the App's Contents and Pull requests write permissions. Verify whether existing controls can isolate the test without affecting the existing manual smoke-test card.
+- US-08: confirm supported system-acceptance extension points, poll-visible approval-label provenance, authoritative blocker representation and Done mapping, and whether body/dependency edits invalidate approval. These are implementation gates, not permission to guess or bypass policy.
+- None for US-07: the developer/admin explicitly accepted and closed the story; historical qualifications remain documented above.
