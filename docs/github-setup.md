@@ -48,3 +48,17 @@ Partial/invalid App configuration stops startup with the relevant variable name.
 4. Inspect the retained LocalSandbox session directory and actual session command output. An agent's summary alone is not evidence of command execution. Unexpected writes, denied access, clone errors, and model failures are not a successful check; do not delete existing data to retry.
 
 The initial README commit made when creating the test repository is separate from this command-only run. Installation tokens handle repository access; a separate personal access token is unnecessary. Polling handles repository updates without webhook ingress.
+
+## Label-based automatic acceptance
+
+Only `TeroTS/factory-smoke-test` is eligible for this single-user MVP. In `to-tickets`, explicitly authorize implementation when approving complete, independent tickets. The skill ensures `ready-for-agent` and `factory-approved` exist, publishes with `ready-for-agent`, verifies publication, and applies `factory-approved` last. Publish-only or incomplete/failed publication leaves approval off; no separate manual labeling step is needed.
+
+Factory's existing issue polling checks open Work cards in Intake for both exact labels, nonempty **What to build** and **Acceptance criteria** sections, and no conflicting `needs-triage` label. Eligible tickets enter Planning automatically without Triage or a board click. Missing/invalid input stays in Intake; existing work-item metadata exposes `factoryApproval` evidence and correction reasons, and the normal audit/decision surfaces show the system transition and kickoff. Polling uses the existing GitHub issue interval (upstream default: one hour). For one-minute polling, set `MASTRACODE_GITHUB_ISSUE_RECONCILE_INTERVAL_MS=60000` in your local environment. This does not enable downstream automation.
+
+Existing Auto-start, Auto-approve plans, and independent self-review settings still govern downstream execution; approval does not enable them. An accepted Planning card may wait for normal run approval if Auto-start is off. Merging remains manual. Previously accepted work parked back in Intake is not automatically reaccepted.
+
+**Trust boundary:** there is no approval-actor check. Anyone able to apply `factory-approved` in this repository can authorize execution as your OS user. Review existing labeled tickets before starting an updated server; eligible existing Intake tickets can be accepted on its next sweep. Keep repository access restricted.
+
+Only approve independently ready tickets. Blocker verification/scheduling and edit-history detection are not implemented. Finish ticket edits before approval; remove approval before further Intake edits and reapply after reviewing them. Native dependency links do not delay this MVP's acceptance. Post-acceptance changes retain upstream handling.
+
+Installation scripts apply an idempotent, version/source-checked `@mastra/factory@0.24.0` compatibility patch for issue-body retrieval and narrowly scoped system acceptance through the existing transition service. It does not migrate storage or change identities, credentials, HTTP schemas, or live settings. Review the patch before upgrading Factory.

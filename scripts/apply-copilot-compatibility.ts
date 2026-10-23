@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { ModuleKind, ScriptTarget, transpileModule } from "typescript";
+import { applyApprovedTicketCompatibility } from "../src/mastra/compatibility/approved-ticket.ts";
 import { applyReviewHandoffCompatibility } from "../src/mastra/compatibility/review-handoff.ts";
 import { applySessionSignalCompatibility } from "../src/mastra/compatibility/session-signal.ts";
 import {
@@ -18,6 +19,19 @@ const catalog = transpileModule(
     compilerOptions: { target: ScriptTarget.ES2022, module: ModuleKind.ES2022 },
   },
 ).outputText;
+const approvalPolicy = transpileModule(
+  readFileSync(
+    new URL("../src/mastra/github/approved-ticket.ts", import.meta.url),
+    "utf8",
+  ),
+  {
+    compilerOptions: { target: ScriptTarget.ES2022, module: ModuleKind.ES2022 },
+  },
+).outputText;
+applyApprovedTicketCompatibility(
+  fileURLToPath(new URL("../node_modules/@mastra/factory/", import.meta.url)),
+  approvalPolicy,
+);
 applySessionSignalCompatibility(
   fileURLToPath(new URL("../node_modules/@mastra/core/", import.meta.url)),
 );

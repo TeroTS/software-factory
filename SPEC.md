@@ -22,7 +22,8 @@ Source: `DECISIONS.md`
 - Credential verification, login UI, external identity services, Mastra platform auth, PostgreSQL, Turso, PlatformSandbox, E2B, Docker, Redis.
 - General GitHub App provisioning or access to existing project repositories; Linear/Slack/Jira/GitLab/incident.io integrations.
 - AWS Bedrock, GitHub Models (`GITHUB_TOKEN`), and other model providers.
-- General end-to-end delivery beyond US-07's pipeline test and US-08's approved-ticket intake policy; automatic merge.
+- General end-to-end delivery beyond US-07's pipeline test and US-08's deterministic label-based intake; automatic merge.
+- Dependency scheduling and GitHub edit-history reconstruction.
 - RBAC, multiple users, LAN/tunnel exposure, production deployment.
 - CI pipeline.
 
@@ -240,44 +241,49 @@ Deferred follow-ups:
 
 ### US-08: Automatically accept approved generated tickets
 
-Status: planned — policy approved; implementation and live execution are not started. Separate from the completed US-07 slice.
+Status: done — label-based auto-approval and the minimal `to-tickets` update are implemented and verified. Formatting, typecheck, and all 253 automated tests pass with 100% statements/branches/functions/lines coverage. The initial `./scripts/verify` build block was resolved in a user-authorized, backed-up stop/build/restart window; build passed and Factory is again bound to `127.0.0.1:4111`. Read-only checks confirm preserved configuration/key, credentials, model defaults, settings, and existing card state. The maintenance window triggered no live ticket. The user subsequently approved publication and automatic implementation of [test issue #4](https://github.com/TeroTS/factory-smoke-test/issues/4); its complete body was verified before `factory-approved` was applied last. The developer/admin subsequently confirmed that the live test worked; US-08 live end-to-end acceptance is recorded on that report, without separate assistant verification of the resulting PR or merge state. Separate from completed US-07.
 
 Primary actor: Local developer/admin
 
-Trigger: A GitHub ticket published by `.agents/skills/to-tickets` is imported or its eligibility changes.
+Trigger: A complete, independent GitHub ticket is imported or its labels change in the selected repository.
 
-Happy-path action: Approve the proposed ticket breakdown and explicitly authorize implementation once. The publishing skill creates the issues and dependency links, then applies `factory-approved` last. Factory evaluates eligible tickets through its existing polling/transition boundaries.
+Happy-path action: Explicitly authorize implementation when approving tickets in `.agents/skills/to-tickets`. The skill publishes complete independent tickets with `ready-for-agent` and applies `factory-approved` last. Factory evaluates these signals through existing polling/reconciliation without manual label application, per-ticket CLI confirmation, or board acceptance clicks.
 
-Visible outcome: An approved, complete, unblocked ticket moves from Intake directly to Planning without a per-ticket acceptance click or Triage run. Dependent tickets wait in Intake and become eligible after their blockers reach Done.
+Visible outcome: An eligible ticket moves Intake → Planning automatically, without a Triage run. Existing automation governs implementation and independent reviewed PR creation; merging stays manual.
 
-Authoritative state transition: A system policy records acceptance evidence and commits Intake → Planning once through the normal transition service, without acting as the local developer/admin.
+Authoritative state transition: A deterministic system policy records the observed approval labels and commits Intake → Planning once through the normal transition service, without impersonating a human transition.
 
-Slice boundary: One future story for label/dependency-gated intake on the existing selected GitHub repository. Reuse upstream ingestion, planning, implementation, independent review, storage, and LocalSandbox. Preserve manual acceptance for other tickets, existing sessions/settings/credentials, loopback binding, and manual merging. No new API/UI, provider, repository access, or external skill edit is authorized by this plan update.
+Slice boundary: Label-based auto-approval for complete, independent tickets in `TeroTS/factory-smoke-test`. Reuse upstream ingestion, polling, planning, implementation, independent review, storage, and LocalSandbox. Preserve ordinary manual acceptance, existing sessions/settings/credentials, loopback binding, and manual merging. Include the minimal `.agents/skills/to-tickets/SKILL.md` change to obtain implementation authorization and apply the exact approval labels after successful publication. No local authorization command, new HTTP API/UI, provider, repository access, dependency scheduler, or unrelated publishing improvement is included. This plan update does not authorize live publication or execution.
 
 Acceptance criteria:
 
-- Automatic acceptance requires the allowed repository, trusted publisher and verified trusted actor applying `factory-approved`, both `ready-for-agent` and `factory-approved`, nonempty What to build and Acceptance criteria sections, and a resolvable blocker declaration or native blocking relationships. The skill's `ready-for-agent` label alone never authorizes execution.
-- Every blocker must be Done before automatic acceptance. Missing, unknown, unreadable, or canceled dependencies do not count as Done; fail closed with a visible reason. Recheck waiting tickets during reconciliation after blockers complete.
-- `needs-triage` explicitly routes an otherwise trusted, unblocked ticket from Intake to Triage instead of granting implementation acceptance. It indicates an unresolved question identified by the developer/admin or publishing skill; Factory does not infer it from ticket prose.
-- A ticket with conflicting `factory-approved` and `needs-triage` labels stays in Intake with a visible correction reason. An incomplete approved ticket also stays in Intake with a validation error, not an automatic Triage run. Tickets outside these explicit routes retain the existing manual flow.
-- The publisher adds approval only after the complete body and blocking relationships exist. Verify approval provenance rather than assuming a trusted issue author proves who applied a label. Unverifiable approval cannot authorize work.
-- Record approval actor/evidence, policy decision, and actual system acceptance/transition. Do not impersonate a human, stamp acceptance with direct SQL, or weaken acceptance for ordinary non-bug tickets. Existing automation settings still govern downstream runs.
-- Repeated or concurrent polling and a server restart cannot duplicate acceptance or Planning kickoff. Failures retain evidence and a visible reason without a retry loop that starts duplicate work.
-- Automated tests cover positive routing, trusted/untrusted and unverifiable approvals, missing/partial/conflicting labels, incomplete bodies, blocked/unblocked/unknown/canceled dependencies, reconciliation/restart/idempotency, and unchanged manual acceptance. Integration tests use real temporary SQLite and runnable Factory boundaries; only remote GitHub/model calls may be doubled.
+- Automatic acceptance requires an open issue in Intake in the allowed repository, both exact labels `ready-for-agent` and `factory-approved`, and nonempty What to build and Acceptance criteria sections. Issue authorship or publication alone never authorizes execution; `ready-for-agent` alone is insufficient.
+- `.agents/skills/to-tickets/SKILL.md` explicitly asks whether to authorize Factory implementation and reviewed PR creation, excluding merge. After authorization it ensures exact repository labels `ready-for-agent` and `factory-approved` exist, publishes each complete independent ticket with `ready-for-agent`, verifies successful publication, then applies `factory-approved` last using the existing GitHub account. No manual label application is required. Publish-only, absent/declined implementation authorization, or failed/incomplete publication omits `factory-approved`; publishing or approving the breakdown alone is not implementation authorization.
+- Applying `factory-approved` explicitly authorizes implementation and reviewed PR creation, not merging. For this single-user MVP, trust the current labels fetched from GitHub in the allowed repository; do not fetch label-event provenance or verify the label actor, publisher, or issue author. Anyone able to apply the approval label there can authorize agent execution on the local machine. Approval-actor verification is deferred.
+- Conflicting `factory-approved` and `needs-triage` labels, incomplete bodies, or unavailable required GitHub evidence leave the ticket in Intake with a visible correction reason. Tickets outside the automatic-approval route retain the existing manual flow; no automatic Triage route is added in this MVP.
+- Only independent tickets are supported. The developer/admin checks prerequisites before applying `factory-approved`; Factory does not verify native blockers or automatically release dependent work in this MVP. Do not treat this as a dependency scheduler.
+- Approval applies to the published ticket; finish edits before applying `factory-approved`. Remove approval before further Intake edits and reapply after reviewing them. Historical edit reconstruction and automated approval invalidation are deferred; the MVP does not claim to detect all post-approval edits. Record the current title/body and approval evidence at acceptance. Post-acceptance changes retain existing governed handling.
+- Record observed labels, repository/issue identity, current ticket content, policy decision, and actual system acceptance/transition. No approval actor or label-event history is required. Use the existing transition service, never human actor spoofing or direct SQL acceptance writes. Ordinary non-bug tickets retain their existing manual acceptance gate.
+- Existing automation settings govern downstream runs; label approval must not silently enable settings, change defaults, bypass independent review, or authorize merging.
+- Repeated/concurrent polls and restart cannot duplicate acceptance or Planning kickoff. A crash between acceptance and dispatch must not permanently lose normal kickoff; reuse existing durable mechanisms. Failures retain evidence and a visible reason without duplicate-work retry loops.
+- Automated tests cover eligible routing, missing/partial/conflicting labels, the same eligibility regardless of label actor or issue author, wrong repository, incomplete bodies, unavailable GitHub data, audited system acceptance, unchanged manual gates, concurrent polling, and restart/recovery. Integration tests use real temporary SQLite and runnable Factory boundaries; only remote GitHub/model calls may be doubled.
+- An explicit end-to-end test imports a complete fixture issue through the GitHub fixture, applies both labels without actor-provenance reads, and observes the real loopback Factory Server automatically exposing Planning plus approval/acceptance evidence without a CLI confirmation or board click. With auto-start enabled in the isolated fixture, verify exactly one normal Planning kickoff, including after repeated polls and restart. Remote model execution may be doubled; do not claim this replaces live Copilot acceptance.
 - Run `./scripts/verify`; maintain at least 80% statements, branches, functions, and lines without decreasing existing coverage. Reports remain `coverage/index.html` and `coverage/lcov.info`. Live GitHub/Copilot acceptance requires separate authorization, backup of the database/key pair, and isolation from existing work.
 
 Implementation plan:
 
-1. Inspect installed upstream ingestion, transition/acceptance policy, label provenance, and dependency support. Resolve the contract questions below before runtime changes; prefer supported extension points.
-2. Define the minimal non-HTTP policy contract and integration with existing reconciliation. If HTTP changes prove necessary, stop for reviewed OpenAPI YAML and generated contracts/client first.
-3. Add failing policy and real-boundary regression tests, implement the smallest complete change, then run formatting/typecheck/coverage/build through `./scripts/verify`.
-4. Coordinate a separately approved publishing-skill update to apply approval last and use the agreed dependency format. No tickets should enter the live automatic route before both sides agree.
+1. Establish current label/body retrieval and the smallest audited system-acceptance extension. Do not add label-event history or actor-verification reads. The installed transition service rejects non-human acceptance; prefer a supported extension, otherwise define a narrowly scoped, version-checked compatibility change without weakening ordinary gates.
+2. Define the minimal non-HTTP label-policy/evidence/acceptance contract in `docs/contracts.md` before runtime changes, including the single-user repository-label trust assumption, visible rejection reasons, duplicate suppression, and kickoff recovery. If changed HTTP surfaces prove necessary, stop for reviewed OpenAPI YAML and generated contracts/client first.
+3. Update `.agents/skills/to-tickets/SKILL.md` for explicit implementation authorization, exact labels, and approval-last publication. Test authorized, publish-only, and incomplete/failed publication flows against the same intake contract; preserve unrelated tracker/local-file behavior without adding features.
+4. Add failing policy and real-boundary tests, implement deterministic label-based reconciliation and audited system acceptance, then run `./scripts/verify`. The end-to-end fixture must exercise the publisher's authorized labeled output through Factory intake. Document labels, approval meaning, independent-ticket scope, and edit-before-approval/manual-merge limits.
 
 Deferred follow-ups:
 
+- Approval-label actor/provenance verification, native dependency scheduling, historical edit reconstruction and automated approval invalidation, and automatic Triage routing.
+- Unrelated basic ticket-publication improvements; only the required `to-tickets` authorization/approval-label wiring is included.
 - Semantic ambiguity detection, automatic merge, new tracker integrations, local-file intake, and broader repository access.
 
 ## Open Questions
 
-- US-08: confirm supported system-acceptance extension points, poll-visible approval-label provenance, authoritative blocker representation and Done mapping, and whether body/dependency edits invalidate approval. These are implementation gates, not permission to guess or bypass policy.
+- US-08: confirm current label/body retrieval and the smallest audited system-acceptance extension with durable duplicate suppression/kickoff recovery. Actor/provenance checks, native blocker verification, and historical edit reconstruction remain deferred; the single-user MVP explicitly trusts approval labels in the allowed repository. Any changed HTTP surface requires reviewed OpenAPI-first artifacts.
 - None for US-07: the developer/admin explicitly accepted and closed the story; historical qualifications remain documented above.

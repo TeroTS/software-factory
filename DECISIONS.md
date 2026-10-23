@@ -1,6 +1,6 @@
 # Local Self-Hosted Mastra Factory Decisions
 
-Status: Accepted v4 — earlier smoke/pipeline scope plus the planned US-08 approved-ticket intake policy.
+Status: Accepted v7 — US-08 single-user label-based auto-approval trusts labels in the allowed repository; approval-actor verification is deferred.
 
 ## Problem Summary
 
@@ -19,18 +19,22 @@ The user explicitly approved proceeding with one isolated automated pipeline tes
 - Prove the exact diff, validation commands, independent review verdict, linked PR, unchanged default branch, and lack of duplicate dispatch during subsequent polling. Failures must remain visible, not be repaired by manually performing the pipeline steps.
 - A separate failing-validation scenario is deferred until the first run succeeds. Live provider calls are acceptance checks, never automated tests using developer credentials.
 
-## US-08 Approved-Ticket Intake Policy
+## US-08 Deterministic Label-Based Auto-Approval
 
-The user approved planning automatic acceptance for tickets generated with `.agents/skills/to-tickets`. This is a separate future story, not a change to US-07's acceptance evidence or authorization to run live work.
+The developer/admin explicitly restored the original label-based automatic approval mechanism and rejected a per-ticket local authorization command. Retain the reduced MVP scope, with the required `to-tickets` approval-label wiring included; dependency scheduling, historical edit reconstruction, and unrelated publishing improvements remain deferred. `SPEC.md` defines acceptance criteria; this revision does not change US-07 acceptance or authorize live work.
 
-- Publish to GitHub through the existing selected repository integration; local ticket files are not an intake source in this story. Do not broaden repository access.
-- The developer/admin explicitly approves both the ticket breakdown and implementation. After publishing complete ticket bodies and blocking relationships, the publishing skill applies `factory-approved` last. Existing `ready-for-agent` alone is not authorization and does not imply blockers are complete.
-- Eligible tickets require an allowed repository, trusted publisher and approval-label actor, `ready-for-agent`, `factory-approved`, required ticket sections, and all blockers Done. They move directly from Intake to Planning, skipping investigation/classification Triage.
-- `needs-triage` is an explicit signal set by the developer/admin or publishing skill for unresolved investigation or clarification. It is not inferred by Factory from incomplete prose. Conflicting approval/triage labels fail closed in Intake for correction.
-- Blocked tickets remain in Intake and are rechecked when blockers complete. Incomplete approved tickets remain in Intake with a visible validation error; other tickets retain the existing manual flow.
-- Acceptance is an auditable system policy decision, never an impersonated human transition or direct database edit. Planning, implementation, independent review, and manual merge policies remain unchanged.
-- Runtime extension points, trustworthy label provenance, dependency representation/completion mapping, and handling edits after approval must be resolved before implementation. Missing or unverifiable evidence cannot authorize work.
-- No new API/UI is planned. If changed HTTP surfaces are necessary, require reviewed OpenAPI-first contracts. Do not patch dependencies speculatively or change the external skill in this planning task.
+- `.agents/skills/to-tickets/SKILL.md` obtains explicit implementation authorization from the developer/admin, ensures exact repository labels `ready-for-agent` and `factory-approved` exist, publishes complete independent issues with `ready-for-agent`, and applies `factory-approved` last after verifying successful publication. Publish-only, declined/absent implementation authorization, and failed/incomplete publication omit approval. Breakdown/publication approval alone is insufficient; authorization includes reviewed PR creation, never merge.
+- In `TeroTS/factory-smoke-test`, complete independent issues with both `ready-for-agent` and `factory-approved` automatically move Intake → Planning through existing polling/reconciliation. The publishing skill adds the approval label using the existing GitHub account; no manual label application, CLI confirmation, per-ticket board acceptance click, or Triage run is required.
+- `ready-for-agent` means ready; `factory-approved` explicitly authorizes implementation and reviewed PR creation, not merging. The developer/admin explicitly accepts a single-user trust assumption: trust current labels fetched from GitHub in the allowed repository without checking label-event history, approval actor, publisher, or issue author. Anyone able to apply the approval label in that repository can authorize local agent execution; actor/provenance verification is deferred. Missing required labels or unavailable current GitHub data still fails closed.
+- Require nonempty What to build and Acceptance criteria sections. Incomplete tickets and conflicting `factory-approved` / `needs-triage` labels stay in Intake with a visible correction reason. Other tickets retain the existing manual flow; automatic Triage routing is deferred.
+- The developer/admin checks prerequisite readiness before approving an independent ticket. Native blockers are not verified or scheduled in this MVP. Finish edits before approval; remove and reapply approval around further Intake edits. Automated historical edit detection/invalidation is deferred, not claimed as a guarantee.
+- Record repository/issue identity, observed labels, current title/body, policy decision, and actual system acceptance; do not require approval actor or label-event evidence. Commit Intake → Planning through the existing transition service without impersonating a human or writing acceptance directly to SQL. Preserve ordinary manual gates.
+- Existing automation settings govern planning, implementation, and independent reviewed PR creation. Approval does not change settings or grant merge permission; merging stays manual.
+- Preserve durable duplicate suppression and normal kickoff recovery across repeated/concurrent polling and restart. Keep visible failure evidence and do not bypass downstream gates.
+- Resolve current label/body retrieval and supported system-acceptance extension points before runtime changes. Approval-actor/provenance checks are not an implementation gate for this MVP. If needed, define a narrow, version-checked compatibility change with real temporary SQLite/Factory tests; never edit installed artifacts manually.
+- Define the minimal non-HTTP label-policy/evidence/acceptance contract before implementation. No new HTTP API/UI is planned; if HTTP changes are necessary, stop for reviewed OpenAPI YAML and generated contracts/client.
+- Include the minimal `.agents/skills/to-tickets/SKILL.md` authorization/approval-label change and test authorized, publish-only, and failed/incomplete publication paths against Factory intake. Preserve existing tracker/local-file behavior without granting Factory approval outside this GitHub flow. Unrelated basic ticket-publication improvements remain excluded.
+- Preserve loopback binding, repository restrictions, credentials/key pairing, sessions, defaults, and live work. Plan updates do not authorize live publication, execution, or settings changes; live acceptance requires separate authorization and backup.
 
 ## Goals and Success Criteria
 

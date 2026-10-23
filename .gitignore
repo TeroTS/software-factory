@@ -15,3 +15,9 @@ coverage/
 *.db-journal
 *.log
 .DS_Store
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/to-tickets/
+.agents/skills/to-tickets/*
+!.agents/skills/to-tickets/SKILL.md
